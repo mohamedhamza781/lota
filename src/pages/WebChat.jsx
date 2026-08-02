@@ -67,6 +67,10 @@ function buildTheme(primaryColor) {
 const ThemeContext = createContext(DEFAULT_THEME);
 
 const CHAT_ID_STORAGE_PREFIX = "lotality_webchat_id:";
+// علامة دائمة (مش مرتبطة بمنشأة معيّنة) بتتخزن أول ما العميل يثبّت
+// الاختصار مرة وحدة - عشان بزيارات لاحقة عبر المتصفح (مسح QR جديد) نعرف
+// إنه أصلاً عنده اختصار مثبّت ونقترحله يرجعله (شوف InstalledAppHint)
+const INSTALLED_FLAG_KEY = "lotality_pwa_installed";
 
 
 function formatTime(iso) {
@@ -1752,6 +1756,54 @@ function RegisteringScreen({ name, logoUrl, establishmentName }) {
 
 // شاشة ترحيبية بعد التسجيل مباشرة - بتعرّف العميل بفكرة المجتمع وفوائده
 // بشكل عام (بدون أرقام/تفاصيل محدّدة)، وبعدين بتوديه للمحادثة الفعلية
+// تلميح "ارجع لاختصارك المثبّت" - بيظهر بس لو (أ) العميل فاتح الموقع
+// هلق من متصفح عادي (مش من داخل التطبيق المثبّت نفسه) و(ب) عنده علامة
+// دائمة إنه سبق وثبّت الاختصار قبل هيك (مثلاً من زيارة سابقة). مفيد
+// لأنه مسح QR أي مرة تانية بيفتح المتصفح إجبارياً (قيد نظام تشغيل، مش
+// من طرفنا) - فبنذكّره إنه أسرع يرجع لاختصاره المثبّت لباقي حاجاته
+// (نقاطه، الهدايا، المنيو...) بدل ما يضل شغال من المتصفح.
+function InstalledAppHint({ isStandaloneNow }) {
+  const THEME = useContext(ThemeContext);
+  const [dismissed, setDismissed] = useState(false);
+
+  const hasInstalledBefore = useMemo(() => {
+    try {
+      return localStorage.getItem(INSTALLED_FLAG_KEY) === "1";
+    } catch {
+      return false;
+    }
+  }, []);
+
+  if (isStandaloneNow || !hasInstalledBefore || dismissed) return null;
+
+  return (
+    <div
+      style={{
+        margin: "8px 12px 0",
+        padding: "9px 12px",
+        borderRadius: 12,
+        background: `${THEME.accent}14`,
+        border: `1px solid ${THEME.accent}30`,
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        flexShrink: 0,
+      }}
+    >
+      <span style={{ fontSize: 12, color: THEME.textPrimary, flex: 1, lineHeight: 1.6 }}>
+        خلصت هون؟ ارجع لاختصارك المثبّت بشاشتك الرئيسية لباقي حاجاتك (نقاطك، هداياك، المنيو...) 👍
+      </span>
+      <button
+        onClick={() => setDismissed(true)}
+        aria-label="إغلاق"
+        style={{ border: "none", background: "transparent", color: THEME.textSecondary, cursor: "pointer", padding: 2, fontSize: 15, lineHeight: 1, flexShrink: 0 }}
+      >
+        ×
+      </button>
+    </div>
+  );
+}
+
 function IntroScreen({ name, establishmentName, logoUrl, onContinue, installBannerProps }) {
   const THEME = useContext(ThemeContext);
   const firstName = (name || "").trim().split(/\s+/)[0] || "";
@@ -2259,7 +2311,11 @@ export default function WebChat() {
       themeMeta.name = "theme-color";
       document.head.appendChild(themeMeta);
     }
-    themeMeta.content = THEME.headerBg;
+    // كان قبل مربوط بلون هوية المنشأة (THEME.headerBg) - بيلوّن شريط
+    // الحالة (الوقت/البطارية/الشبكة) بالمتصفح ولون الخلفية خلف النوتش
+    // بنفس لون المنشأة (أحمر، أخضر...)، وطلب إزالته - هلق ثابت أبيض
+    // بغض النظر عن لون المنشأة
+    themeMeta.content = "#ffffff";
   }, [slug]);
 
   // تسجيل الـService Worker مرة وحدة (شرط أساسي لـPWA + لازم له عشان
@@ -2274,6 +2330,11 @@ export default function WebChat() {
   // هاد الحدث إطلاقاً، لازم تثبيت يدوي من قائمة المشاركة) - بنمنع المتصفح
   // من عرض شريطه التلقائي الافتراضي، ومنحتفظ فيه لحد ما نستخدمه إحنا من
   // زر مخصّص بصفحة "الرئيسية"
+  const isStandaloneNow = useMemo(
+    () => Boolean(window.matchMedia?.("(display-mode: standalone)")?.matches || window.navigator.standalone),
+    []
+  );
+
   useEffect(() => {
     function handleBeforeInstallPrompt(e) {
       e.preventDefault();
@@ -2284,20 +2345,33 @@ export default function WebChat() {
     function handleAppInstalled() {
       setInstallPromptEvent(null);
       setIsAppInstalled(true);
+      // منحفظ "تم التثبيت" بشكل دائم بالـlocalStorage - عشان لو رجع فتح
+      // رابط عادي بالمتصفح (مثلاً من مسح QR جديد) بزيارة لاحقة، نعرف إنه
+      // أصلاً عنده اختصار مثبّت ونذكّره يرجعله (شوف InstalledAppHint تحت)
+      try {
+        localStorage.setItem(INSTALLED_FLAG_KEY, "1");
+      } catch {
+        // تجاهل
+      }
     }
     window.addEventListener("appinstalled", handleAppInstalled);
 
     // لو أصلاً فاتح التطبيق المثبّت (مش المتصفح العادي)، ما في داعي نوريه
-    // زر التثبيت إطلاقاً
-    if (window.matchMedia?.("(display-mode: standalone)")?.matches || window.navigator.standalone) {
+    // زر التثبيت إطلاقاً، وكمان نأكّد العلامة الدائمة لأنه أكيد مثبّت
+    if (isStandaloneNow) {
       setIsAppInstalled(true);
+      try {
+        localStorage.setItem(INSTALLED_FLAG_KEY, "1");
+      } catch {
+        // تجاهل
+      }
     }
 
     return () => {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
       window.removeEventListener("appinstalled", handleAppInstalled);
     };
-  }, []);
+  }, [isStandaloneNow]);
 
   async function handleInstallClick() {
     if (!installPromptEvent) return;
@@ -2465,6 +2539,7 @@ export default function WebChat() {
       }}
     >
       <InstallBanner {...installBannerProps} establishmentName={establishment?.establishmentName} />
+      <InstalledAppHint isStandaloneNow={isStandaloneNow} />
 
       {/* ----------------- الهيدر العلوي - بس بتبويب الشات ----------------- */}
       {activeTab === "chat" && (
