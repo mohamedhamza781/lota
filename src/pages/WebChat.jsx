@@ -2191,6 +2191,25 @@ export default function WebChat() {
     });
 
     socket.on("joined", (data) => {
+      // الباك إند بيتحقق إنه في حساب عميل فعلي وراء هاد الـchatId المحفوظ
+      // (لو كان أصلاً محفوظ من قبل) - لو صاحب المنشأة حذف العميل من صفحة
+      // "العملاء" بالداشبورد، هلق ما عاد في حساب حقيقي وراه، فبنصفّر كل
+      // شي محلياً ونعامله كزائر جديد كلياً (لازم يمسح QR ويسجّل من الصفر)
+      if (data.customerExists === false) {
+        try {
+          localStorage.removeItem(storageKey);
+        } catch {
+          // تجاهل
+        }
+        chatIdRef.current = null;
+        setChatId(null);
+        setMessages([]);
+        setEstablishment(null);
+        socket.disconnect();
+        setScreen(viaQr ? "welcome" : "needQr");
+        return;
+      }
+
       chatIdRef.current = data.chatId;
       setChatId(data.chatId);
       localStorage.setItem(storageKey, data.chatId);
