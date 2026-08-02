@@ -568,13 +568,71 @@ function CouponsView({ slug, chatId }) {
 // بانر تثبيت PWA - "ملازم" للمستخدم بكل الصفحات (شاشة الترحيب، الإنترو،
 // وكل تبويبات الشات) لحد ما يثبّت فعلياً - وقتها بس بيختفي. مش بانر خاص
 // بصفحة "الرئيسية" بس، هيك طلب صريح: يضل ظاهر لحد ما يستجيب.
+// تذكير "ثبّت التطبيق" - بدل ما يكون شريط ثابت دايماً آخذ مساحة من
+// الشاشة، صار إشعار عائم (toast) بيظهر بس كل فترة وفترة (مرة كل ٢٤
+// ساعة كحد أقصى، محفوظ بالـlocalStorage)، وبيختفي لحاله بعد شوي أو
+// بمجرد ما تسكّره يدوياً - ما بياخذ مساحة دايمة من الشاشة إطلاقاً.
+const INSTALL_PROMPT_COOLDOWN_MS = 24 * 60 * 60 * 1000; // ٢٤ ساعة
+const INSTALL_PROMPT_STORAGE_KEY = "lotality_install_prompt_last_shown";
+const INSTALL_PROMPT_AUTO_HIDE_MS = 9000; // بيختفي لحاله بعد ٩ ثواني لو محدا سكّره يدوياً
+
 function InstallBanner({ canInstall, isIOS, isAppInstalled, onInstallClick, establishmentName }) {
   const THEME = useContext(ThemeContext);
   const [showIOSInstructions, setShowIOSInstructions] = useState(false);
-  if (isAppInstalled || !(canInstall || isIOS)) return null;
+  const [visible, setVisible] = useState(false);
+  const eligible = !isAppInstalled && (canInstall || isIOS);
+
+  useEffect(() => {
+    if (!eligible) return;
+    let lastShown = 0;
+    try {
+      lastShown = Number(localStorage.getItem(INSTALL_PROMPT_STORAGE_KEY)) || 0;
+    } catch {
+      // تجاهل - لو localStorage مش متاح، منعتبرها أول مرة ونعرضها عادي
+    }
+    if (Date.now() - lastShown < INSTALL_PROMPT_COOLDOWN_MS) return;
+
+    // تأخير بسيط قبل ما تظهر - عشان ما تقاطع أول لحظة تحميل الصفحة
+    const showTimer = setTimeout(() => setVisible(true), 1800);
+    return () => clearTimeout(showTimer);
+  }, [eligible]);
+
+  function dismiss() {
+    setVisible(false);
+    try {
+      localStorage.setItem(INSTALL_PROMPT_STORAGE_KEY, String(Date.now()));
+    } catch {
+      // تجاهل
+    }
+  }
+
+  // بيختفي لحاله بعد فترة لو محدا تفاعل معه (يدوس تثبيت أو يسكّره)،
+  // إلا لو فاتح تعليمات آيفون (خليها مفتوحة لحد ما يسكّرها بنفسه)
+  useEffect(() => {
+    if (!visible || showIOSInstructions) return;
+    const hideTimer = setTimeout(dismiss, INSTALL_PROMPT_AUTO_HIDE_MS);
+    return () => clearTimeout(hideTimer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, showIOSInstructions]);
+
+  if (!visible) return null;
 
   return (
-    <div style={{ padding: "8px 12px", background: "#fff", borderBottom: `1px solid ${THEME.border}`, flexShrink: 0 }}>
+    <div
+      style={{
+        position: "fixed",
+        top: "max(12px, env(safe-area-inset-top, 12px))",
+        left: 12,
+        right: 12,
+        zIndex: 50,
+        background: "#fff",
+        borderRadius: 16,
+        border: `1px solid ${THEME.border}`,
+        boxShadow: "0 10px 28px -6px rgba(0,0,0,0.18)",
+        padding: "10px 12px",
+        animation: "fadeScaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+      }}
+    >
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <div
           style={{
@@ -597,7 +655,7 @@ function InstallBanner({ canInstall, isIOS, isAppInstalled, onInstallClick, esta
           </div>
         </div>
         <button
-          onClick={() => (isIOS ? setShowIOSInstructions((v) => !v) : onInstallClick())}
+          onClick={() => (isIOS ? setShowIOSInstructions((v) => !v) : (onInstallClick(), dismiss()))}
           style={{
             border: "none",
             borderRadius: 9,
@@ -613,6 +671,22 @@ function InstallBanner({ canInstall, isIOS, isAppInstalled, onInstallClick, esta
         >
           ثبّت
         </button>
+        <button
+          onClick={dismiss}
+          aria-label="إغلاق"
+          style={{
+            border: "none",
+            background: "transparent",
+            color: THEME.textSecondary,
+            cursor: "pointer",
+            padding: 4,
+            flexShrink: 0,
+            fontSize: 16,
+            lineHeight: 1,
+          }}
+        >
+          ×
+        </button>
       </div>
       {isIOS && showIOSInstructions && (
         <div style={{ marginTop: 8, fontSize: 11.5, color: THEME.textSecondary, lineHeight: 1.8 }}>
@@ -623,6 +697,12 @@ function InstallBanner({ canInstall, isIOS, isAppInstalled, onInstallClick, esta
           ٣. دوس "إضافة" فوق يمين
         </div>
       )}
+      <style>{`
+        @keyframes fadeScaleIn {
+          from { opacity: 0; transform: scale(0.96) translateY(-6px); }
+          to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+      `}</style>
     </div>
   );
 }
@@ -2375,7 +2455,7 @@ export default function WebChat() {
     <div
       dir="rtl"
       style={{
-        height: "100vh",
+        height: "100dvh",
         display: "flex",
         flexDirection: "column",
         background: THEME.bgChat,
