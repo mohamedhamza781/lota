@@ -2333,6 +2333,14 @@ export default function WebChat() {
     );
   }
 
+  if (screen === "needQr") {
+    return (
+      <ThemeContext.Provider value={THEME}>
+        <NeedQrScreen slug={slug} />
+      </ThemeContext.Provider>
+    );
+  }
+
   if (screen === "registering") {
     return (
       <ThemeContext.Provider value={THEME}>
