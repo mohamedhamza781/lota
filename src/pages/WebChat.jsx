@@ -754,7 +754,7 @@ function MenuCurtainReveal({ trigger, THEME, logoUrl, establishmentName, childre
   }, [trigger]);
 
   return (
-    <div style={{ position: "relative", flex: 1, minHeight: 0, overflow: "hidden" }}>
+    <div style={{ position: "relative", flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
       {children}
       {revealing && (
         <>
@@ -2469,7 +2469,7 @@ export default function WebChat() {
           logoUrl={establishment?.establishmentLogo || earlyInfo?.logoUrl}
           establishmentName={establishment?.establishmentName || earlyInfo?.name}
         >
-          <div className="wc-scroll" style={{ flex: 1, overflowY: "auto" }}>
+          <div className="wc-scroll" style={{ flex: 1, minHeight: 0, overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
             <PublicMenu slugProp={slug} hideDialog />
           </div>
         </MenuCurtainReveal>
