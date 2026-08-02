@@ -1,0 +1,24 @@
+# تبعيات - بتتنصب من جديد بـ npm install، ما لازم تنرفع
+node_modules/
+
+# ناتج البناء (npm run build) - بيتولّد من جديد كل مرة، ما لازم يترفع
+dist/
+dist-ssr/
+
+# أسرار حقيقية (لو أضفتوا .env بالفرونت إند لاحقاً)
+.env
+.env.local
+.env.*.local
+
+# ملفات نظام التشغيل
+.DS_Store
+Thumbs.db
+
+# محرر
+.vscode/
+.idea/
+*.local
+
+# لوجات
+*.log
+npm-debug.log*
