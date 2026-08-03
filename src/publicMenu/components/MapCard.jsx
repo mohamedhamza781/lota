@@ -44,7 +44,7 @@ export default function MapCard({ height = 220 }) {
           top: "50%",
           left: "50%",
           transform: "translate(-50%, -50%)",
-          bgcolor: "secondary.main",
+          bgcolor: "#fff",
           width: 44,
           height: 44,
           boxShadow: "0 6px 16px rgba(0,0,0,0.35)",
