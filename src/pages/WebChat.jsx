@@ -1393,29 +1393,30 @@ function WelcomeScreen({ slug, onSubmit, installBannerProps, logoUrl: earlyLogoU
             لما بيانات المنشأة (الاسم/الشعار) توصل فعلياً - عشان ما تبين
             دائرة "؟" فاضية لحظة قبل ما الشعار الحقيقي يوصل */}
             {(resolvedLogoUrl || resolvedName) && (
-              <div
-                style={{
-                  width: 112,
-                  height: 112,
-                  borderRadius: "50%",
-                  background: "rgba(255,255,255,0.14)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  overflow: "hidden",
-                  flexShrink: 0,
-                  animation: "fadeScaleIn 0.35s cubic-bezier(0.16, 1, 0.3, 1)",
-                }}
-              >
-                {resolvedLogoUrl ? (
-                  <FadeInImage
-                    src={resolveImageUrl(resolvedLogoUrl)}
-                    alt={resolvedName || "Logo"}
-                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                  />
-                ) : (
-                  <span style={{ fontSize: 42, fontWeight: 800, color: "#fff" }}>{resolvedName.trim().charAt(0)}</span>
-                )}
+              <div style={{ animation: "fadeScaleIn 0.35s cubic-bezier(0.16, 1, 0.3, 1)" }}>
+                <div
+                  style={{
+                    width: 112,
+                    height: 112,
+                    borderRadius: "50%",
+                    background: "rgba(255,255,255,0.14)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    overflow: "hidden",
+                    flexShrink: 0,
+                  }}
+                >
+                  {resolvedLogoUrl ? (
+                    <FadeInImage
+                      src={resolveImageUrl(resolvedLogoUrl)}
+                      alt={resolvedName || "Logo"}
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                    />
+                  ) : (
+                    <span style={{ fontSize: 42, fontWeight: 800, color: "#fff" }}>{resolvedName.trim().charAt(0)}</span>
+                  )}
+                </div>
               </div>
             )}
 
