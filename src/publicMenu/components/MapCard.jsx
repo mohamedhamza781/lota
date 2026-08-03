@@ -50,7 +50,7 @@ export default function MapCard({ height = 220 }) {
           boxShadow: "0 6px 16px rgba(0,0,0,0.35)",
         }}
       >
-        <PlaceRoundedIcon sx={{ color: "#fff" }} />
+        <PlaceRoundedIcon sx={{ color: "#000" }} />
       </Avatar>
     </Box>
   );

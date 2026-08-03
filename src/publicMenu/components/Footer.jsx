@@ -113,9 +113,9 @@ export default function Footer({
                   disabled={!url}
                   sx={{
                     bgcolor: "#fff",
-                    color: "#fff",
-                    "&:hover": { bgcolor: "#f0f0f0", color: "#fff" },
-                    "&.Mui-disabled": { bgcolor: "rgba(255,255,255,0.35)", color: "rgba(255,255,255,0.5)" },
+                    color: "#000",
+                    "&:hover": { bgcolor: "#f0f0f0", color: "#000" },
+                    "&.Mui-disabled": { bgcolor: "rgba(255,255,255,0.35)", color: "rgba(0,0,0,0.4)" },
                   }}
                 >
                   <Icon fontSize="small" />
