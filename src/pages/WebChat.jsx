@@ -2191,6 +2191,12 @@ export default function WebChat() {
   // تذكير بسيط (مش شاشة حاجزة) بعد ١٢ ساعة يقول للعميل "امسح QR من جديد
   // عشان تسجّل زيارة جديدة" - شوف QrReminderBanner تحت
   const lastQrScanKey = `lotality_last_qr_scan:${slug}`;
+  // نافذة زمنية معقولة (ساعة) نعتبر خلالها "آخر مسح QR" لسا حديث بما
+  // فيه الكفاية - عشان لو مسح QR بالمتصفح، وقبل ما يخلّص التسجيل ثبّت
+  // الاختصار وفتحه، الاختصار (سياق منفصل عن التاب الأصلي، بس بيتشارك
+  // نفس localStorage تبع نفس الأصل) يقدر "يفهم" إنه أصلاً مسح QR قبل
+  // شوي، ويوريه خطوات التسجيل بدل ما يطلب منه يمسح من جديد
+  const QR_SCAN_RECENCY_MS = 60 * 60 * 1000; // ساعة وحدة
   const [viaQr] = useState(() => {
     const fromUrl = new URLSearchParams(window.location.search).get("src") === "qr";
     if (fromUrl) {
@@ -2203,7 +2209,9 @@ export default function WebChat() {
       return true;
     }
     try {
-      return sessionStorage.getItem(viaQrSessionKey) === "1";
+      if (sessionStorage.getItem(viaQrSessionKey) === "1") return true;
+      const lastScan = Number(localStorage.getItem(lastQrScanKey)) || 0;
+      return Date.now() - lastScan < QR_SCAN_RECENCY_MS;
     } catch {
       return false;
     }
