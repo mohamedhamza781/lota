@@ -610,7 +610,7 @@ function CouponsView({ slug, chatId }) {
 // الشاشة، صار إشعار عائم (toast) بيظهر بس كل فترة وفترة (مرة كل ٢٤
 // ساعة كحد أقصى، محفوظ بالـlocalStorage)، وبيختفي لحاله بعد شوي أو
 // بمجرد ما تسكّره يدوياً - ما بياخذ مساحة دايمة من الشاشة إطلاقاً.
-const INSTALL_PROMPT_COOLDOWN_MS = 24 * 60 * 60 * 1000; // ٢٤ ساعة
+const INSTALL_PROMPT_COOLDOWN_MS = 20 * 1000; // ⚠️ مؤقت للتجربة - كانت: 24 * 60 * 60 * 1000 (٢٤ ساعة)، رجّعها لما تخلص التجربة
 const INSTALL_PROMPT_STORAGE_KEY = "lotality_install_prompt_last_shown";
 const INSTALL_PROMPT_AUTO_HIDE_MS = 9000; // بيختفي لحاله بعد ٩ ثواني لو محدا سكّره يدوياً
 
