@@ -83,7 +83,7 @@ const INSTALLED_FLAG_KEY = "lotality_pwa_installed";
 // (fade) لما فعلياً يخلص تحميله، بدل ما "يظهر فجأة" فوق حركة الدائرة
 // المحيطة فيه يلي بتخلص حركتها قبله بكتير (هيك كانت البادئة "بايخة" -
 // حركتين مش متزامنتين، دائرة بتتحرك بس الصورة نفسها تطلع فجأة بعدها)
-function FadeInImage({ src, alt, style }) {
+function FadeInImage({ src, alt, style, circular = true }) {
   const [loaded, setLoaded] = useState(false);
   return (
     <img
@@ -93,6 +93,11 @@ function FadeInImage({ src, alt, style }) {
       onLoad={() => setLoaded(true)}
       style={{
         ...style,
+        // clip-path مضاف كطبقة قص إضافية أقوى - مش بس معتمدين على
+        // overflow:hidden للحاوية الأب (يلي طلع غير مضمون ١٠٠٪ ببعض
+        // حالات Safari). هيك الصورة نفسها مفروضة تكون دائرية دايماً،
+        // بغض النظر عن أي مشكلة بالحاوية المحيطة فيها.
+        ...(circular ? { clipPath: "circle(50%)", WebkitClipPath: "circle(50%)", borderRadius: "50%" } : {}),
         opacity: loaded ? 1 : 0,
         transition: "opacity 0.35s ease",
       }}
