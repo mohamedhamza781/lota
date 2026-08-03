@@ -11,11 +11,17 @@ import PublicMenu from "./PublicMenu";
 // الباك إند. أي منشأة حدّدت لونها الخاص (من نفس منتقي اللون الموجود
 // بصفحة "المنيو" بالداشبورد) بتاخذ هوية بصرية كاملة مبنية على هاد اللون
 // تلقائياً - شوف buildTheme تحت.
+//
+// ⚠️ مهم: هاد اللون الافتراضي (قبل ما يوصل لون المنشأة الحقيقي) لازم
+// يكون محايد (رمادي) لا أخضر ولا أي لون تاني مميّز - عشان لو صار "ومضة"
+// بسيطة قبل ما تتحمّل بيانات المنشأة (طبيعي بأي تطبيق بيجيب بياناته من
+// السيرفر)، تبين "شاشة تحميل عامة" مش "لون براند غلط" (كان قبل أخضر
+// غامق، وكان بيبين واضح وغلط لأي منشأة بلونها الخاص، خصوصاً الأحمر).
 const DEFAULT_THEME = {
-  headerBg: "#0F5C47",
-  headerBgGrad: "linear-gradient(135deg, #0F5C47 0%, #074333 100%)",
-  accent: "#0F5C47",
-  accentHover: "#0A4334",
+  headerBg: "#64748B",
+  headerBgGrad: "linear-gradient(135deg, #64748B 0%, #475569 100%)",
+  accent: "#64748B",
+  accentHover: "#475569",
   bgChat: "#F0F2F5",
   bubbleIn: "#FFFFFF",
   bubbleOut: "#E7F8EE",
@@ -1149,7 +1155,7 @@ function NeedQrScreen({ slug }) {
     };
   }, [slug]);
 
-  const darkGreen = THEME.headerBg || "#0F5C47";
+  const darkGreen = THEME.headerBg || "#64748B";
 
   return (
     <div
@@ -1160,7 +1166,7 @@ function NeedQrScreen({ slug }) {
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        background: `radial-gradient(120% 80% at 50% 0%, ${THEME.accent ? THEME.accent + "0D" : "#0F5C470D"} 0%, ${THEME.bgChat || "#F1F5F9"} 100%)`,
+        background: `radial-gradient(120% 80% at 50% 0%, ${THEME.accent ? THEME.accent + "0D" : "#64748B0D"} 0%, ${THEME.bgChat || "#F1F5F9"} 100%)`,
         fontFamily: "'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'IBM Plex Sans Arabic', sans-serif",
         padding: 24,
         boxSizing: "border-box",
@@ -1283,7 +1289,7 @@ function WelcomeScreen({ slug, onSubmit, installBannerProps, logoUrl: earlyLogoU
 
   // الأخضر الغامق (نفس لون الهيدر) - مستخدم هلق للأيقونات بدل الأخضر
   // الفاتح (accent) عشان يطابق طلب "خضرا غامقة"
-  const darkGreen = THEME.headerBg || "#0F5C47";
+  const darkGreen = THEME.headerBg || "#64748B";
 
   // بيانات الشعار/الاسم - نفضّل يلي وصل مسبقاً من الأب (earlyInfo، وصل
   // أسرع لأنه بيتجاب من لحظة فتح الصفحة) وإلا يلي جبناه هون محلياً
@@ -1330,7 +1336,7 @@ function WelcomeScreen({ slug, onSubmit, installBannerProps, logoUrl: earlyLogoU
         justifyContent: "space-between",
         background: loadingInfo
           ? THEME.headerBgGrad || `linear-gradient(135deg, ${darkGreen} 0%, ${darkGreen} 100%)`
-          : `radial-gradient(120% 80% at 50% 0%, ${THEME.accent ? THEME.accent + "0D" : "#0F5C470D"} 0%, ${THEME.bgChat || "#F1F5F9"} 100%)`,
+          : `radial-gradient(120% 80% at 50% 0%, ${THEME.accent ? THEME.accent + "0D" : "#64748B0D"} 0%, ${THEME.bgChat || "#F1F5F9"} 100%)`,
         transition: "background 0.4s ease",
         fontFamily: "'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'IBM Plex Sans Arabic', sans-serif",
         overflow: "hidden",
@@ -1452,7 +1458,7 @@ function WelcomeScreen({ slug, onSubmit, installBannerProps, logoUrl: earlyLogoU
                   width: 78,
                   height: 78,
                   borderRadius: "50%",
-                  background: THEME.headerBgGrad || `linear-gradient(135deg, ${THEME.accent || "#0F5C47"} 0%, #064E3B 100%)`,
+                  background: THEME.headerBgGrad || `linear-gradient(135deg, ${THEME.accent || "#64748B"} 0%, #064E3B 100%)`,
                   color: "#ffffff",
                   display: "flex",
                   alignItems: "center",
@@ -1571,13 +1577,13 @@ function WelcomeScreen({ slug, onSubmit, installBannerProps, logoUrl: earlyLogoU
   type="submit"
   style={{
     width: "100%",
-    border: `2px solid ${THEME.headerBg || "#0F5C47"}`,
+    border: `2px solid ${THEME.headerBg || "#64748B"}`,
     borderRadius: 16,
     padding: "14.5px 0",
     fontSize: 15,
     fontWeight: 700,
     color: "#ffffff",
-    background: THEME.headerBg || "#0F5C47",
+    background: THEME.headerBg || "#64748B",
     cursor: "pointer",
     marginTop: 4,
     transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
@@ -1585,10 +1591,10 @@ function WelcomeScreen({ slug, onSubmit, installBannerProps, logoUrl: earlyLogoU
   }}
   onMouseEnter={(e) => {
     e.currentTarget.style.background = "#ffffff";
-    e.currentTarget.style.color = THEME.headerBg || "#0F5C47";
+    e.currentTarget.style.color = THEME.headerBg || "#64748B";
   }}
   onMouseLeave={(e) => {
-    e.currentTarget.style.background = THEME.headerBg || "#0F5C47";
+    e.currentTarget.style.background = THEME.headerBg || "#64748B";
     e.currentTarget.style.color = "#ffffff";
   }}
   onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.98)")}
@@ -1694,7 +1700,7 @@ function WelcomeScreen({ slug, onSubmit, installBannerProps, logoUrl: earlyLogoU
 function RegisteringScreen({ name, logoUrl, establishmentName }) {
   const THEME = useContext(ThemeContext);
   const firstName = (name || "").trim().split(/\s+/)[0] || "";
-  const darkGreen = THEME.headerBg || "#0F5C47";
+  const darkGreen = THEME.headerBg || "#64748B";
 
   // رسائل متغيّرة أثناء الانتظار - بتحسّن إحساس المستخدم بالتقدّم (مش نفس
   // النص الثابت طول الوقت)، وبتذكّره بفوائد المجتمع بنفس الوقت
@@ -1725,7 +1731,7 @@ function RegisteringScreen({ name, logoUrl, establishmentName }) {
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        background: `radial-gradient(120% 80% at 50% 0%, ${THEME.accent ? THEME.accent + "0D" : "#0F5C470D"} 0%, ${THEME.bgChat || "#F1F5F9"} 100%)`,
+        background: `radial-gradient(120% 80% at 50% 0%, ${THEME.accent ? THEME.accent + "0D" : "#64748B0D"} 0%, ${THEME.bgChat || "#F1F5F9"} 100%)`,
         fontFamily: "'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'IBM Plex Sans Arabic', sans-serif",
         padding: 24,
         boxSizing: "border-box",
@@ -1994,7 +2000,7 @@ function QrReminderBanner({ slug, chatId }) {
 function IntroScreen({ name, establishmentName, logoUrl, onContinue, installBannerProps }) {
   const THEME = useContext(ThemeContext);
   const firstName = (name || "").trim().split(/\s+/)[0] || "";
-  const darkGreen = THEME.headerBg || "#0F5C47";
+  const darkGreen = THEME.headerBg || "#64748B";
   const benefits = [
     { icon: <StarIcon />, title: "اجمع نقاط مع كل زيارة", text: "كل ما تزورنا وتتفاعل معنا، بتزيد نقاطك تلقائياً" },
     { icon: <CameraIcon />, title: "شارك صور وجباتك", text: "صور وجبتك وشاركنا فيها - نقاط إضافية بكل صورة" },
@@ -2008,7 +2014,7 @@ function IntroScreen({ name, establishmentName, logoUrl, onContinue, installBann
         height: "100dvh",
         display: "flex",
         flexDirection: "column",
-        background: `radial-gradient(120% 80% at 50% 0%, ${THEME.accent ? THEME.accent + "0D" : "#0F5C470D"} 0%, ${THEME.bgChat || "#F1F5F9"} 100%)`,
+        background: `radial-gradient(120% 80% at 50% 0%, ${THEME.accent ? THEME.accent + "0D" : "#64748B0D"} 0%, ${THEME.bgChat || "#F1F5F9"} 100%)`,
         fontFamily: "'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'IBM Plex Sans Arabic', sans-serif",
       }}
     >
@@ -2115,7 +2121,7 @@ function IntroScreen({ name, establishmentName, logoUrl, onContinue, installBann
               fontSize: 15,
               fontWeight: 700,
               color: "#ffffff",
-              background: THEME.headerBg || "#0F5C47",
+              background: THEME.headerBg || "#64748B",
               cursor: "pointer",
               marginTop: 20,
               // boxShadow: `0 8px 20px ${darkGreen}45`,
@@ -3239,7 +3245,7 @@ export default function WebChat() {
           </button>
         ))}
       </nav>
-      <div style={{ textAlign: "center", fontSize: 10, color: THEME.textSecondary, opacity: 0.6, padding: "4px 0 6px", background: "#fff" }}>
+      <div style={{ textAlign: "center", fontSize: 10, color: THEME.textSecondary, opacity: 0.6, padding: "4px 0 6px", paddingBottom: "calc(6px + env(safe-area-inset-bottom, 0px))", background: "#fff" }}>
         تطوير Kajo — © {CURRENT_YEAR} جميع الحقوق محفوظة
       </div>
 
