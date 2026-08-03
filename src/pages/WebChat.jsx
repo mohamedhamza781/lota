@@ -449,7 +449,7 @@ function AccountView({ slug, chatId }) {
 
       {/* صور الوجبات */}
       <div>
-        <div style={{ fontWeight: 700, fontSize: 14.5, color: THEME.textPrimary, marginBottom: 10 }}>صور وجباتي</div>
+        <div style={{ fontWeight: 700, fontSize: 14.5, color: THEME.textPrimary, marginBottom: 10 }}>وجباتي المفضلة</div>
         {(!photos || photos.length === 0) && (
           <div style={{ fontSize: 13, color: THEME.textSecondary, background: "#fff", borderRadius: 14, padding: 16, border: `1px solid ${THEME.border}`, textAlign: "center" }}>
             لسا ما رفعت أي صورة
@@ -646,11 +646,16 @@ const INSTALL_PROMPT_COOLDOWN_MS = 20 * 1000; // ⚠️ مؤقت للتجربة 
 const INSTALL_PROMPT_STORAGE_KEY = "lotality_install_prompt_last_shown";
 const INSTALL_PROMPT_AUTO_HIDE_MS = 9000; // بيختفي لحاله بعد ٩ ثواني لو محدا سكّره يدوياً
 
-function InstallBanner({ canInstall, isIOS, isAppInstalled, onInstallClick, establishmentName }) {
+function InstallBanner({ canInstall, isIOS, isAndroid, isAppInstalled, onInstallClick, establishmentName }) {
   const THEME = useContext(ThemeContext);
   const [showIOSInstructions, setShowIOSInstructions] = useState(false);
+  // تعليمات يدوية لأندرويد - بتظهر بس لو حدث "beforeinstallprompt" ما
+  // انطلق (متصفح غير كروم متل Samsung Internet/Firefox، أو متصفح داخلي
+  // بتطبيق متل انستغرام/فيسبوك ما بيدعم الحدث إطلاقاً)، فبنعرض خطوات
+  // يدوية بدل ما يضل الزر معطّل بلا أي بديل
+  const [showAndroidInstructions, setShowAndroidInstructions] = useState(false);
   const [visible, setVisible] = useState(false);
-  const eligible = !isAppInstalled && (canInstall || isIOS);
+  const eligible = !isAppInstalled && (canInstall || isIOS || isAndroid);
 
   useEffect(() => {
     if (!eligible) return;
@@ -679,11 +684,11 @@ function InstallBanner({ canInstall, isIOS, isAppInstalled, onInstallClick, esta
   // بيختفي لحاله بعد فترة لو محدا تفاعل معه (يدوس تثبيت أو يسكّره)،
   // إلا لو فاتح تعليمات آيفون (خليها مفتوحة لحد ما يسكّرها بنفسه)
   useEffect(() => {
-    if (!visible || showIOSInstructions) return;
+    if (!visible || showIOSInstructions || showAndroidInstructions) return;
     const hideTimer = setTimeout(dismiss, INSTALL_PROMPT_AUTO_HIDE_MS);
     return () => clearTimeout(hideTimer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible, showIOSInstructions]);
+  }, [visible, showIOSInstructions, showAndroidInstructions]);
 
   if (!visible) return null;
 
@@ -725,7 +730,17 @@ function InstallBanner({ canInstall, isIOS, isAppInstalled, onInstallClick, esta
           </div>
         </div>
         <button
-          onClick={() => (isIOS ? setShowIOSInstructions((v) => !v) : (onInstallClick(), dismiss()))}
+          onClick={() => {
+            if (isIOS) return setShowIOSInstructions((v) => !v);
+            if (canInstall) {
+              onInstallClick();
+              return dismiss();
+            }
+            // أندرويد بس بلا حدث beforeinstallprompt (متصفح ما بيدعمه) -
+            // منعرضله تعليمات يدوية بدل ما الزر ما يعمل شي إطلاقاً
+            if (isAndroid) return setShowAndroidInstructions((v) => !v);
+            dismiss();
+          }}
           style={{
             border: "none",
             borderRadius: 9,
@@ -765,6 +780,15 @@ function InstallBanner({ canInstall, isIOS, isAppInstalled, onInstallClick, esta
           ٢. مرّر واختار "إضافة إلى الشاشة الرئيسية"
           <br />
           ٣. دوس "إضافة" فوق يمين
+        </div>
+      )}
+      {isAndroid && !canInstall && showAndroidInstructions && (
+        <div style={{ marginTop: 8, fontSize: 11.5, color: THEME.textSecondary, lineHeight: 1.8 }}>
+          ١. دوس زر القائمة ⋮ فوق يمين المتصفح
+          <br />
+          ٢. اختار "إضافة إلى الشاشة الرئيسية" أو "تثبيت التطبيق"
+          <br />
+          ٣. أكّد الإضافة
         </div>
       )}
       <style>{`
@@ -986,13 +1010,17 @@ function MenuCurtainReveal({ trigger, THEME, logoUrl, establishmentName, childre
   );
 }
 
+// أيقونة دراجة/سكوتر توصيل - بدل شاحنة التوصيل القديمة
 function DeliveryIcon() {
   return (
     <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="1" y="3" width="15" height="13" rx="1.5" />
-      <path d="M16 8h4l3 3v5h-7V8z" />
-      <circle cx="5.5" cy="19" r="2" />
-      <circle cx="17.5" cy="19" r="2" />
+      <circle cx="5" cy="18" r="2.5" />
+      <circle cx="18" cy="18" r="2.5" />
+      <path d="M5 18h5.5l1.5-4h4" />
+      <path d="M12 14l-1-3h-3" />
+      <path d="M15.5 14V9.5a1 1 0 0 1 1-1H18" />
+      <path d="M18 8.5V14" />
+      <rect x="15" y="5.3" width="4" height="3" rx="0.6" />
     </svg>
   );
 }
@@ -2353,6 +2381,10 @@ export default function WebChat() {
     const hasTouch = navigator.maxTouchPoints > 1;
     return isMacUA && hasTouch;
   }, []);
+  // أندرويد - بنستخدمها كبديل احتياطي لما حدث "beforeinstallprompt" ما
+  // ينطلق (متصفح غير كروم، أو متصفح داخلي بتطبيق) عشان لسا نقدر نعرض
+  // تعليمات تثبيت يدوية بدل ما زر التثبيت يضل بلا أي فائدة على أندرويد
+  const isAndroid = useMemo(() => /android/i.test(navigator.userAgent), []);
   const brandCacheKey = `webchat_brand:${slug}`;
   // أول مرة تفتح الصفحة (بعد أول تحميل ناجح)، منخزّن هوية المنشأة (شعار،
   // اسم، لون) محلياً - عشان لما العميل يرجع يفتح نفس الرابط مرة تانية
@@ -2762,6 +2794,7 @@ export default function WebChat() {
   const installBannerProps = {
     canInstall: Boolean(installPromptEvent),
     isIOS,
+    isAndroid,
     isAppInstalled,
     onInstallClick: handleInstallClick,
   };
@@ -3244,7 +3277,7 @@ export default function WebChat() {
           { key: "menu", label: "المنيو", icon: <MenuIcon /> },
           { key: "coupons", label: "الهدايا", icon: <TicketIcon /> },
           { key: "account", label: "حسابي", icon: <PersonIcon /> },
-          { key: "about", label: "الديلفري", icon: <DeliveryIcon /> },
+          { key: "about", label: "ديلفري", icon: <DeliveryIcon /> },
         ].map((tab) => (
           <button
             key={tab.key}

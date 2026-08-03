@@ -874,7 +874,7 @@ export default function Branches() {
             <InfoRoundedIcon sx={{ color: tokens.muted }} />
             <Stack spacing={0.3}>
               <Typography sx={{ fontFamily: '"IBM Plex Sans Arabic"', fontWeight: 700, fontSize: "0.95rem" }}>
-                الديلفري
+                ديلفري
               </Typography>
               <Typography variant="caption" sx={{ color: "text.secondary" }}>
                 رقم واتساب التوصيل - بيظهر بتبويب "الديلفري" بشات الويب، وبيدوس عليه العميل ليفتحله محادثة واتساب مباشرة مع هاد الرقم لطلب توصيل.
