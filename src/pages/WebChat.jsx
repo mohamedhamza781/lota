@@ -2149,6 +2149,12 @@ export default function WebChat() {
 
   const [establishment, setEstablishment] = useState(null);
   const [connectionState, setConnectionState] = useState("connecting"); // connecting | connected | error | reconnecting
+  // هل زيارة العميل الحالية خلصت (وصل لملخص نهاية الزيارة)؟ لو true،
+  // بنقفل صندوق كتابة الرسائل (بس نص توضيحي بدل الحقل) - العميل لسا
+  // يقدر يتصفح كل التبويبات التانية عادي (منيو/حسابي/هدايا...)، وردود
+  // صاحب المنشأة اليدوية (sendAdminMessage) لسا توصله عادي كمان. بيرجع
+  // ينفتح تلقائياً أول ما يمسح QR من جديد ويبلّش زيارة جديدة.
+  const [chatLocked, setChatLocked] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [messages, setMessages] = useState([]);
   const [botTyping, setBotTyping] = useState(false);
@@ -2403,6 +2409,7 @@ export default function WebChat() {
       localStorage.setItem(storageKey, data.chatId);
       setEstablishment(data);
       setConnectionState("connected");
+      setChatLocked(Boolean(data.chatLocked));
 
       // بيرجع المحادثة السابقة كاملة من الباك إند (لو عميل راجع بنفس
       // الـchatId) - هيك المحادثة بتضل موجودة حتى لو عمل ريفرش للصفحة،
@@ -2440,6 +2447,14 @@ export default function WebChat() {
     socket.on("bot_message", (data) => {
       setBotTyping(false);
       pushMessage({ from: "bot", text: data.text, at: data.at });
+
+      // كشف رسالة "ملخص نهاية الزيارة" (نص ثابت بالقالب، شوف
+      // whatsapp.service.js) - لما توصل، معناها الزيارة خلصت فعلياً،
+      // فمنقفل صندوق الإرسال فوراً (بدون ما ننتظر ريفرش/إعادة اتصال
+      // جديدة عشان نعرف)
+      if (typeof data.text === "string" && data.text.includes("انتهت زيارتك بنجاح")) {
+        setChatLocked(true);
+      }
 
       // أول رد من البوت بيكون "أهلاً بكـ بمجتمع... يرجى تزويدي بالاسم" -
       // هاي أول "تواصل" بس، ما بتُعتبر الاسم بعد (نفس آلية بوت الواتساب
@@ -3021,6 +3036,27 @@ export default function WebChat() {
           flexShrink: 0,
         }}
       >
+        {chatLocked ? (
+          // الزيارة الحالية خلصت (وصل لملخص نهاية الزيارة) - صندوق
+          // الإرسال مقفول، بس العميل لسا يقدر يتصفح باقي التبويبات عادي
+          // (منيو/حسابي/هدايا/ديلفري)، ولو صاحب المنشأة بعتله رسالة
+          // يدوية لسا رح توصله عادي
+          <div
+            style={{
+              maxWidth: 800,
+              margin: "0 auto",
+              textAlign: "center",
+              fontSize: 12.5,
+              color: THEME.textSecondary,
+              background: THEME.bgChat,
+              borderRadius: 14,
+              padding: "12px 16px",
+              lineHeight: 1.8,
+            }}
+          >
+            خلصت زيارتك الحالية 🎉 امسح رمز QR بزيارتك الجاية عشان تكمّل حكيك من جديد مع البوت
+          </div>
+        ) : (
         <div style={{ display: "flex", alignItems: "flex-end", gap: 8, maxWidth: 800, margin: "0 auto" }}>
           <input
             ref={fileInputRef}
@@ -3115,6 +3151,7 @@ export default function WebChat() {
             <SendIcon />
           </button>
         </div>
+        )}
       </footer>
       </>
       )}
