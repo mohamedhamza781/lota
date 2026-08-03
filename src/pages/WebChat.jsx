@@ -79,6 +79,27 @@ const CHAT_ID_STORAGE_PREFIX = "lotality_webchat_id:";
 const INSTALLED_FLAG_KEY = "lotality_pwa_installed";
 
 
+// شعار المنشأة (وأي صورة تانية بتاخد وقت تتحمّل) - بيبين بتلاشي ناعم
+// (fade) لما فعلياً يخلص تحميله، بدل ما "يظهر فجأة" فوق حركة الدائرة
+// المحيطة فيه يلي بتخلص حركتها قبله بكتير (هيك كانت البادئة "بايخة" -
+// حركتين مش متزامنتين، دائرة بتتحرك بس الصورة نفسها تطلع فجأة بعدها)
+function FadeInImage({ src, alt, style }) {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <img
+      loading="lazy"
+      src={src}
+      alt={alt || ""}
+      onLoad={() => setLoaded(true)}
+      style={{
+        ...style,
+        opacity: loaded ? 1 : 0,
+        transition: "opacity 0.35s ease",
+      }}
+    />
+  );
+}
+
 function formatTime(iso) {
   try {
     return new Date(iso).toLocaleTimeString("ar", { hour: "2-digit", minute: "2-digit" });
@@ -776,7 +797,7 @@ function HomeView({ logoUrl, establishmentName, promoText, promotions = [] }) {
         }}
       >
         {logoUrl ? (
-          <img loading="lazy" src={resolveImageUrl(logoUrl)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          <FadeInImage src={resolveImageUrl(logoUrl)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
         ) : (
           (establishmentName || "؟").trim().charAt(0)
         )}
@@ -937,7 +958,7 @@ function MenuCurtainReveal({ trigger, THEME, logoUrl, establishmentName, childre
               }}
             >
               {logoUrl ? (
-                <img loading="lazy"
+                <FadeInImage
                   src={resolveImageUrl(logoUrl)}
                   alt={establishmentName || ""}
                   style={{ width: "100%", height: "100%", objectFit: "cover" }}
@@ -1016,7 +1037,7 @@ function DeliveryView({ deliveryWhatsAppNumber, establishmentName, logoUrl }) {
           }}
         >
           {logoUrl ? (
-            <img loading="lazy" src={resolveImageUrl(logoUrl)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            <FadeInImage src={resolveImageUrl(logoUrl)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           ) : (
             <DeliveryIcon />
           )}
@@ -1387,7 +1408,7 @@ function WelcomeScreen({ slug, onSubmit, installBannerProps, logoUrl: earlyLogoU
                 }}
               >
                 {resolvedLogoUrl ? (
-                  <img loading="lazy"
+                  <FadeInImage
                     src={resolveImageUrl(resolvedLogoUrl)}
                     alt={resolvedName || "Logo"}
                     style={{ width: "100%", height: "100%", objectFit: "cover" }}
@@ -1774,7 +1795,7 @@ function RegisteringScreen({ name, logoUrl, establishmentName }) {
             }}
           >
             {logoUrl ? (
-              <img loading="lazy" src={resolveImageUrl(logoUrl)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              <FadeInImage src={resolveImageUrl(logoUrl)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
             ) : (
               (establishmentName || "؟").trim().charAt(0)
             )}
@@ -2060,7 +2081,7 @@ function IntroScreen({ name, establishmentName, logoUrl, onContinue, installBann
             }}
           >
             {logoUrl ? (
-              <img loading="lazy" src={resolveImageUrl(logoUrl)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              <FadeInImage src={resolveImageUrl(logoUrl)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
             ) : (
               (establishmentName || "؟").trim().charAt(0)
             )}
@@ -2844,7 +2865,7 @@ export default function WebChat() {
           }}
         >
           {(establishment?.establishmentLogo || earlyInfo?.logoUrl) ? (
-            <img loading="lazy"
+            <FadeInImage
               src={resolveImageUrl(establishment?.establishmentLogo || earlyInfo?.logoUrl)}
               alt=""
               style={{ width: "100%", height: "100%", objectFit: "cover" }}
