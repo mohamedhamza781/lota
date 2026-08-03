@@ -512,7 +512,7 @@ function CouponsView({ slug, chatId }) {
     <div className="wc-scroll" style={{ flex: 1, overflowY: "auto", padding: "18px 16px 24px", display: "flex", flexDirection: "column", gap: 10 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, color: THEME.textPrimary, fontWeight: 700, fontSize: 16 }}>
         <TicketIcon />
-        هداياي
+        الهدايا
       </div>
 
       {(!coupons || coupons.length === 0) && (
