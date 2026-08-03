@@ -1486,12 +1486,12 @@ function WelcomeScreen({ slug, onSubmit, installBannerProps, logoUrl: earlyLogoU
                   justifyContent: "center",
                   fontWeight: 800,
                   fontSize: 32,
-
+                  overflow: "hidden",
                   flexShrink: 0,
                 }}
               >
                 {info?.logoUrl ? (
-                  <img loading="lazy"
+                  <FadeInImage
                     src={resolveImageUrl(info.logoUrl)}
                     alt={info?.name || "Logo"}
                     style={{ width: "100%", height: "100%", objectFit: "cover" }}
