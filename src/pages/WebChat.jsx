@@ -1225,13 +1225,17 @@ function NeedQrScreen({ slug }) {
   );
 }
 
-function WelcomeScreen({ slug, onSubmit, installBannerProps, logoUrl: earlyLogoUrl, establishmentName: earlyEstablishmentName }) {
+function WelcomeScreen({ slug, onSubmit, installBannerProps, logoUrl: earlyLogoUrl, establishmentName: earlyEstablishmentName, externalError }) {
   const THEME = useContext(ThemeContext);
   const [info, setInfo] = useState(null);
   const [loadingInfo, setLoadingInfo] = useState(true);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [formError, setFormError] = useState("");
+  const [formError, setFormError] = useState(externalError || "");
+
+  useEffect(() => {
+    if (externalError) setFormError(externalError);
+  }, [externalError]);
   const [focusedInput, setFocusedInput] = useState(null);
 
   useEffect(() => {
@@ -2264,15 +2268,22 @@ export default function WebChat() {
   // "welcome" = شاشة الترحيب (فورم الاسم/الرقم)، "registering" = شاشة تحميل
   // بسيطة أثناء ما التسجيل بيصير بالخلفية (بدون ما نوري المحادثة الفعلية)،
   // "intro" = شاشة ترحيبية بعد التسجيل (فكرة المجتمع وفوائده، بدون تفاصيل
-  // أرقام)، "chat" = المحادثة الفعلية، "needQr" = شاشة "لازم تمسح QR"
-  // (عميل جديد كلياً - ما عندوش chatId محفوظ - بس وصل من غير مسح QR
-  // فعلي). لو عنده chatId محفوظ من قبل (زار قبل هيك)، منتخطى كل هاي
-  // الشاشات ومنروح مباشرة للمحادثة - بغض النظر عن viaQr (شات الويب
-  // بيسمحله يفتح حسابه ويكمل محادثته عادي، بس الباك إند ما رح يسجّلها
-  // "زيارة جديدة" إلا لو فعلاً مسح QR بهاي الجلسة تحديداً)
+  // أرقام)، "chat" = المحادثة الفعلية. لو عنده chatId محفوظ من قبل (زار
+  // قبل هيك)، منتخطى كل هاي الشاشات ومنروح مباشرة للمحادثة.
+  //
+  // ⚠️ ملاحظة مهمة: قبل هيك كان في شاشة رابعة ("needQr") بتظهر لو ما
+  // عنده chatId ولا وصل من رابط فيه علامة مسح QR فعلي - بس الاعتماد على
+  // "تذكّر" إنه مسح QR (عبر sessionStorage/localStorage) طلع هش وغير
+  // موثوق عبر سياقات مختلفة (متصفح عادي مقابل تطبيق مثبّت "مستقل" على
+  // نفس الجهاز، خصوصاً على آيفون). فبسّطنا الموضوع: هلق دايماً منعرض
+  // فورم التسجيل مباشرة (بدون ما نحاول نخمّن هل مسح QR فعلاً ولا لأ)،
+  // والتحقق الحقيقي (هل مسح QR صحيح فعلاً + قريب من موقع الفرع لو
+  // محدّد) صاير بالباك إند (isValidQrVisit بـwhatsapp.service.js) -
+  // لو مش صحيح، البوت برد جوا نفس المحادثة "لازم تمسح QR..." بدل ما
+  // نمنعه من الوصول لفورم التسجيل من الأساس.
   const [screen, setScreen] = useState(() => {
     if (localStorage.getItem(storageKey)) return "chat";
-    return viaQr ? "welcome" : "needQr";
+    return "welcome";
   });
   const [deliveryWhatsAppNumber, setDeliveryWhatsAppNumber] = useState("");
   const [promoText, setPromoText] = useState("");
@@ -2286,6 +2297,7 @@ export default function WebChat() {
   const pendingRegistrationRef = useRef(null);
   // idle -> بعتنا الاسم ومستنيين رسالة طلب الرقم -> بعتنا الرقم -> done
   const registrationStepRef = useRef("idle");
+  const [registrationError, setRegistrationError] = useState("");
   // هل بعتنا "رسالة تفعيل الزيارة" (زي مسح QR) لهاد الجلسة قبل هيك؟ -
   // بنستخدمها لعميل راجع (chatId موجود مسبقاً) عشان نحسب زيارة جديدة بس
   // مرة وحدة لكل اتصال، مش في كل مرة السوكيت يعيد الاتصال تلقائياً
@@ -2408,7 +2420,7 @@ export default function WebChat() {
         setMessages([]);
         setEstablishment(null);
         socket.disconnect();
-        setScreen(viaQr ? "welcome" : "needQr");
+        setScreen("welcome");
         return;
       }
 
@@ -2462,6 +2474,23 @@ export default function WebChat() {
       // جديدة عشان نعرف)
       if (typeof data.text === "string" && data.text.includes("انتهت زيارتك بنجاح")) {
         setChatLocked(true);
+      }
+
+      // لو كنا بمنتصف محاولة تسجيل (شاشة "جاري إنشاء حسابك...") ووصل رد
+      // البوت "لازم تمسح رمز QR..." - معناها الباك إند رفض التسجيل لأنه
+      // مش جاي فعلياً من مسح QR صحيح (isValidQrVisit بـwhatsapp.service.js).
+      // بدون هالفحص، كنا رح نضل عالقين على شاشة التحميل للأبد بصمت.
+      // فبنرجعه لشاشة الترحيب مع رسالة خطأ واضحة تفسّرله السبب.
+      if (
+        (registrationStepRef.current === "awaiting_welcome" || registrationStepRef.current === "awaiting_phone_request") &&
+        typeof data.text === "string" &&
+        data.text.includes("لازم تمسح رمز QR")
+      ) {
+        registrationStepRef.current = "idle";
+        pendingRegistrationRef.current = null;
+        setRegistrationError("لازم تمسح رمز QR الموجود بالمحل مباشرة عشان تقدر تسجّل - افتح كاميرا جوالك وامسحه من جديد.");
+        setScreen("welcome");
+        return;
       }
 
       // أول رد من البوت بيكون "أهلاً بكـ بمجتمع... يرجى تزويدي بالاسم" -
@@ -2518,6 +2547,7 @@ export default function WebChat() {
   }, [slug, storageKey, pushMessage, screen, viaQr, referralCode]);
 
   function handleWelcomeSubmit({ name, phone }) {
+    setRegistrationError("");
     pendingRegistrationRef.current = { name, phone };
     setWelcomeName(name);
     setScreen("registering");
@@ -2712,6 +2742,7 @@ export default function WebChat() {
           installBannerProps={installBannerProps}
           logoUrl={establishment?.establishmentLogo || earlyInfo?.logoUrl}
           establishmentName={establishment?.establishmentName || earlyInfo?.name}
+          externalError={registrationError}
         />
       </ThemeContext.Provider>
     );
