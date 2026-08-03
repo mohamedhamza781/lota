@@ -5,7 +5,7 @@ import XIcon from "@mui/icons-material/X";
 import PlaceRoundedIcon from "@mui/icons-material/PlaceRounded";
 import AccessTimeRoundedIcon from "@mui/icons-material/AccessTimeRounded";
 import PhoneRoundedIcon from "@mui/icons-material/PhoneRounded";
-import EmailRoundedIcon from "@mui/icons-material/EmailRounded"; // تم إضافة أيقونة الإيميل
+import EmailRoundedIcon from "@mui/icons-material/EmailRounded";
 import { scrollToSection } from "../scrollTo";
 import MapCard from "./MapCard";
 
@@ -71,7 +71,6 @@ export default function Footer({
   return (
     <Box sx={{ bgcolor: "primary.main", color: "#fff", pt: 8, pb: 2 }}>
       <Box sx={{ maxWidth: 1200, mx: "auto", px: { xs: 2, md: 6 } }}>
-        {/* قسم الموقع — مدموج هون بالفوتر بدل ما يكون قسم مستقل بالصفحة */}
         <Box id="locations" sx={{ mb: 7 }}>
           <Typography variant="h4" sx={{ fontFamily: '"IBM Plex Sans Arabic"', mb: 3 }}>
             وين تلاقي {brandName}
@@ -112,10 +111,10 @@ export default function Footer({
                   rel={url ? "noopener noreferrer" : undefined}
                   disabled={!url}
                   sx={{
-                    bgcolor: "secondary.main",
-                    color: "primary.main",
-                    "&:hover": { bgcolor: "#ecdfb5" },
-                    "&.Mui-disabled": { bgcolor: "rgba(245,236,210,0.35)", color: "rgba(31,77,43,0.4)" },
+                    bgcolor: "#ffffff", // تم التغيير إلى اللون الأبيض
+                    color: "primary.main", // لون الأيقونة
+                    "&:hover": { bgcolor: "rgba(255, 255, 255, 0.85)" }, // لون الخلفية عند الـ Hover
+                    "&.Mui-disabled": { bgcolor: "rgba(255, 255, 255, 0.4)", color: "rgba(31,77,43,0.4)" }, // الحالة المعطلة
                   }}
                 >
                   <Icon fontSize="small" />
