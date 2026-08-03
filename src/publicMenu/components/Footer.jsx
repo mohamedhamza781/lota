@@ -69,7 +69,7 @@ export default function Footer({
   ];
 
   return (
-    <Box sx={{ bgcolor: "primary.main", color: "secondary.main", pt: 8, pb: 2 }}>
+    <Box sx={{ bgcolor: "primary.main", color: "#fff", pt: 8, pb: 2 }}>
       <Box sx={{ maxWidth: 1200, mx: "auto", px: { xs: 2, md: 6 } }}>
         {/* قسم الموقع — مدموج هون بالفوتر بدل ما يكون قسم مستقل بالصفحة */}
         <Box id="locations" sx={{ mb: 7 }}>
