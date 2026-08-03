@@ -77,6 +77,10 @@ const CHAT_ID_STORAGE_PREFIX = "lotality_webchat_id:";
 // الاختصار مرة وحدة - عشان بزيارات لاحقة عبر المتصفح (مسح QR جديد) نعرف
 // إنه أصلاً عنده اختصار مثبّت ونقترحله يرجعله (شوف InstalledAppHint)
 const INSTALLED_FLAG_KEY = "lotality_pwa_installed";
+// علامة بالـsessionStorage (خاصة بهاد التبويب بس) - بنتأكد منها قبل
+// محاولة تسليم الرابط لنظام أندرويد (شوف intent:// تحت) عشان ما نعيد
+// نفس المحاولة أكتر من مرة بنفس التبويب لو رجعت نفس الصفحة (fallback)
+const PWA_HANDOFF_ATTEMPTED_KEY = "lotality_pwa_handoff_attempted";
 
 
 // شعار المنشأة (وأي صورة تانية بتاخد وقت تتحمّل) - بيبين بتلاشي ناعم
@@ -2697,6 +2701,42 @@ export default function WebChat() {
       window.removeEventListener("appinstalled", handleAppInstalled);
     };
   }, [isStandaloneNow]);
+
+  // أندرويد بس: العميل عنده اختصار مثبّت مسبقاً (زيارة سابقة) وهلق فاتح
+  // الرابط من تبويب متصفح عادي (مش من جوا التطبيق المثبّت نفسه، مثلاً
+  // بعد ما مسح QR من جديد) - منحاول نسلّم قرار "مين بيفتح هاد الرابط"
+  // لنظام أندرويد نفسه عن طريق رابط intent:// بدل ما يضل الفتح محصور
+  // جوا كروم؛ لو في WebAPK مسجّل لنفس النطاق (الحالة الطبيعية لو ثبّته
+  // فعلياً من زر "ثبّت")، أندرويد بيعرضله يفتحه بالتطبيق مباشرة.
+  // ⚠️ هاد اجتهاد بحدود الممكن تقنياً بس - آيفون (سفاري) ما عنده أي آلية
+  // مكافئة إطلاقاً (قيد نظام أبل نفسه، مش إشي منقدر نتحايل عليه من
+  // موقعنا)، وحتى بأندرويد النتيجة مش مضمونة ١٠٠٪ (بتعتمد على كروم فعلياً
+  // سجّل WebAPK، وعلى تطبيق مسح الـQR نفسه إنه بيسلّم الرابط لنظام
+  // التشغيل بدل ما يفتحه بمتصفح/WebView داخلي خاص فيه - أشياء برّا
+  // سيطرتنا كموقع). منجرّبها مرة وحدة بس لكل تبويب (sessionStorage) عشان
+  // نتجنب أي حلقة إعادة توجيه لو المحاولة رجّعت نفس الصفحة (fallback).
+  useEffect(() => {
+    if (isStandaloneNow || !isAndroid) return;
+    let alreadyInstalled = false;
+    try {
+      alreadyInstalled = localStorage.getItem(INSTALLED_FLAG_KEY) === "1";
+    } catch {
+      return;
+    }
+    if (!alreadyInstalled) return;
+    try {
+      if (sessionStorage.getItem(PWA_HANDOFF_ATTEMPTED_KEY) === "1") return;
+      sessionStorage.setItem(PWA_HANDOFF_ATTEMPTED_KEY, "1");
+    } catch {
+      return; // ما فينا نضمن عدم التكرار - أحسن ما نحاول أصلاً من حلقة محتملة
+    }
+    const current = window.location.href;
+    const withoutScheme = current.replace(/^https?:\/\//, "");
+    const intentUrl =
+      `intent://${withoutScheme}#Intent;scheme=https;action=android.intent.action.VIEW;` +
+      `category=android.intent.category.BROWSABLE;S.browser_fallback_url=${encodeURIComponent(current)};end`;
+    window.location.href = intentUrl;
+  }, [isStandaloneNow, isAndroid]);
 
   async function handleInstallClick() {
     if (!installPromptEvent) return;
