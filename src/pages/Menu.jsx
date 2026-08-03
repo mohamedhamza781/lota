@@ -35,12 +35,9 @@ import QrCode2RoundedIcon from "@mui/icons-material/QrCode2Rounded";
 import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
 import { tokens } from "../theme/theme";
 import { useAuth } from "../auth/AuthContext";
-import { uploadImage, resolveImageUrl } from "../api/uploads";
 import { fetchWebChatQrCode } from "../api/webChat";
-import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
-import CloudUploadRoundedIcon from "@mui/icons-material/CloudUploadRounded";
 
-const EMPTY_ITEM_FORM = { name: "", price: "", isNew: false, categoryId: "", imageUrl: null };
+const EMPTY_ITEM_FORM = { name: "", price: "", isNew: false, categoryId: "" };
 
 export default function Menu() {
   const { establishmentId } = useParams();
@@ -69,7 +66,6 @@ export default function Menu() {
   const [editingItem, setEditingItem] = useState(null);
   const [itemForm, setItemForm] = useState(EMPTY_ITEM_FORM);
   const [formError, setFormError] = useState("");
-  const [uploadingImage, setUploadingImage] = useState(false);
 
   const [confirmDeleteCategory, setConfirmDeleteCategory] = useState(null);
   const [confirmDeleteItem, setConfirmDeleteItem] = useState(null);
@@ -127,26 +123,9 @@ export default function Menu() {
       price: String(item.price),
       isNew: Boolean(item.isNew),
       categoryId,
-      imageUrl: item.imageUrl ?? null,
     });
     setFormError("");
     setItemDialogOpen(true);
-  }
-
-  async function handleImageChange(e) {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-    setFormError("");
-    setUploadingImage(true);
-    try {
-      const { url } = await uploadImage(file);
-      setItemForm((f) => ({ ...f, imageUrl: url }));
-    } catch (err) {
-      setFormError(err.message || "تعذّر رفع الصورة");
-    } finally {
-      setUploadingImage(false);
-    }
   }
 
   function handleSaveItem() {
@@ -159,7 +138,7 @@ export default function Menu() {
       setFormError("السعر لازم يكون رقم صحيح");
       return;
     }
-    const payload = { name: itemForm.name.trim(), price, isNew: itemForm.isNew, imageUrl: itemForm.imageUrl };
+    const payload = { name: itemForm.name.trim(), price, isNew: itemForm.isNew };
     if (editingItem) {
       updateMenuItem(establishmentId, editingItem.categoryId, editingItem.itemId, payload);
     } else {
@@ -480,7 +459,6 @@ export default function Menu() {
               <Table size="small">
                 <TableHead>
                   <TableRow sx={{ "& th": { borderBottom: `1px solid ${tokens.hairline || "rgba(0,0,0,0.08)"}`, color: tokens.muted, fontWeight: 600, fontSize: "0.8rem" } }}>
-                    <TableCell sx={{ width: 60 }}></TableCell>
                     <TableCell>الصنف</TableCell>
                     <TableCell>السعر</TableCell>
                     <TableCell>الحالة</TableCell>
@@ -497,40 +475,6 @@ export default function Menu() {
                         "&:last-child td": { borderBottom: "none" },
                       }}
                     >
-                      <TableCell sx={{ width: 60, py: 1.5 }}>
-                        {it.imageUrl ? (
-                          <Box
-                            component="img"
-                            src={resolveImageUrl(it.imageUrl)}
-                            alt={it.name}
-                            sx={{
-                              width: 44,
-                              height: 44,
-                              borderRadius: "12px",
-                              objectFit: "cover",
-                              display: "block",
-                              boxShadow: "0 4px 10px rgba(0,0,0,0.06)",
-                              border: "1px solid rgba(0,0,0,0.05)",
-                            }}
-                          />
-                        ) : (
-                          <Box
-                            sx={{
-                              width: 44,
-                              height: 44,
-                              borderRadius: "12px",
-                              bgcolor: "rgba(0,0,0,0.02)",
-                              border: "1px dashed",
-                              borderColor: tokens.hairline || "rgba(0,0,0,0.1)",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                            }}
-                          >
-                            <ImageOutlinedIcon fontSize="small" sx={{ color: tokens.muted, opacity: 0.6 }} />
-                          </Box>
-                        )}
-                      </TableCell>
                       <TableCell sx={{ fontFamily: '"IBM Plex Sans Arabic"', fontWeight: 600, fontSize: "0.92rem" }}>
                         {it.name}
                       </TableCell>
@@ -576,7 +520,7 @@ export default function Menu() {
                   ))}
                   {cat.items.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={5} align="center" sx={{ py: 4, color: "text.secondary", fontSize: "0.88rem" }}>
+                      <TableCell colSpan={4} align="center" sx={{ py: 4, color: "text.secondary", fontSize: "0.88rem" }}>
                         ما في أصناف بهاد القسم بعد
                       </TableCell>
                     </TableRow>
@@ -719,66 +663,6 @@ export default function Menu() {
               inputProps={{ step: "0.01", min: 0 }}
               sx={{ "& .MuiOutlinedInput-root": { borderRadius: "12px" } }}
             />
-            <Stack spacing={1}>
-              <Typography variant="caption" sx={{ color: tokens.muted, fontFamily: '"IBM Plex Sans Arabic"', fontWeight: 600 }}>
-                صورة الصنف
-              </Typography>
-              <Stack direction="row" spacing={2} alignItems="center">
-                <Box
-                  sx={{
-                    width: 64,
-                    height: 64,
-                    borderRadius: "14px",
-                    overflow: "hidden",
-                    flexShrink: 0,
-                    bgcolor: "rgba(0,0,0,0.03)",
-                    border: `1px solid ${tokens.hairline || "rgba(0,0,0,0.1)"}`,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  {itemForm.imageUrl ? (
-                    <Box
-                      component="img"
-                      src={resolveImageUrl(itemForm.imageUrl)}
-                      alt="معاينة"
-                      sx={{ width: "100%", height: "100%", objectFit: "cover" }}
-                    />
-                  ) : (
-                    <ImageOutlinedIcon sx={{ color: tokens.muted, opacity: 0.5 }} />
-                  )}
-                </Box>
-                <Stack spacing={1} direction="row" alignItems="center">
-                  <Button
-                    component="label"
-                    variant="outlined"
-                    size="small"
-                    disabled={uploadingImage}
-                    startIcon={<CloudUploadRoundedIcon fontSize="small" />}
-                    sx={{
-                      borderColor: tokens.hairline || "rgba(0,0,0,0.15)",
-                      color: tokens.ink,
-                      borderRadius: "10px",
-                      fontFamily: '"IBM Plex Sans Arabic"',
-                      fontWeight: 600,
-                    }}
-                  >
-                    {uploadingImage ? "جاري الرفع..." : itemForm.imageUrl ? "تغيير الصورة" : "رفع صورة"}
-                    <input type="file" accept="image/*" hidden onChange={handleImageChange} />
-                  </Button>
-                  {itemForm.imageUrl && !uploadingImage && (
-                    <Button
-                      size="small"
-                      onClick={() => setItemForm((f) => ({ ...f, imageUrl: null }))}
-                      sx={{ color: "error.main", borderRadius: "10px", fontWeight: 600 }}
-                    >
-                      إزالة
-                    </Button>
-                  )}
-                </Stack>
-              </Stack>
-            </Stack>
             {!editingItem && (
               <TextField
                 select
@@ -819,7 +703,6 @@ export default function Menu() {
           <Button
             onClick={handleSaveItem}
             variant="contained"
-            disabled={uploadingImage}
             sx={{
               backgroundColor: tokens.ink,
               color: tokens.paper,

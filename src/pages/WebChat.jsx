@@ -2868,7 +2868,11 @@ export default function WebChat() {
       <InstallBanner {...installBannerProps} establishmentName={establishment?.establishmentName} />
       <InstalledAppHint isStandaloneNow={isStandaloneNow} />
       <OfflineBanner />
-      <QrReminderBanner slug={slug} chatId={chatId} />
+      {/* تذكير مسح QR بعد ١٢ ساعة اتشال بناءً على طلب صريح - العميل ما
+          لازم يشوف أي رسالة عن هيك. منطق حساب الزيارة الجديدة بعد ١٢
+          ساعة (isValidQrVisit + VISIT_WINDOW_HOURS بالباك إند) ضل شغال
+          بالكامل بدون أي تغيير - لو مسح QR فعلياً بعد ١٢ ساعة، بتُحسب له
+          زيارة جديدة بصمت زي ما هو، بس من غير ما نعرضله أي تذكير أو رسالة */}
 
       {/* ----------------- الهيدر العلوي - بس بتبويب الشات ----------------- */}
       {activeTab === "chat" && (

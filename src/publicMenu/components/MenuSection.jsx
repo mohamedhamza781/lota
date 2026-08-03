@@ -1,86 +1,75 @@
-import { Box, Grid, Typography, Card, CardContent, Chip, Stack } from "@mui/material";
-import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
+import { Box, Typography, Chip, Stack } from "@mui/material";
 
-function ProductCard({ name, price, isNew, image }) {
+// صف صنف واحد بقائمة نصية أنيقة - الاسم يمين، خط منقّط (leader) بيوصل
+// لحد السعر يسار، بستايل قوائم المطاعم الكلاسيكي. ما في صور أصناف
+// إطلاقاً (اتشالت بناءً على طلب صريح) - النص والسعر بس، مرتب ونظيف.
+function MenuItemRow({ name, price, isNew }) {
   return (
-    <Card elevation={0} sx={{ bgcolor: "transparent" }}>
-      <Box sx={{
-        position: "relative", bgcolor: "primary.main", borderRadius: { xs: 2, sm: 3 },
-        aspectRatio: "1 / 1", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden",
-        transition: "transform .3s", "&:hover": { transform: "translateY(-4px)" },
-      }}>
+    <Stack
+      direction="row"
+      alignItems="flex-end"
+      spacing={{ xs: 1, sm: 1.5 }}
+      sx={{
+        py: { xs: 1.1, sm: 1.5 },
+        borderBottom: "1px solid rgba(31,77,43,0.08)",
+        "&:last-of-type": { borderBottom: "none" },
+      }}
+    >
+      <Stack direction="row" alignItems="center" spacing={0.75} sx={{ flexShrink: 0, maxWidth: "70%" }}>
+        <Typography
+          sx={{
+            fontFamily: '"IBM Plex Sans Arabic"',
+            fontWeight: 700,
+            color: "primary.main",
+            fontSize: { xs: 13.5, sm: 16 },
+            lineHeight: 1.4,
+          }}
+        >
+          {name}
+        </Typography>
         {isNew && (
           <Chip
             label="جديد"
             size="small"
             sx={{
-              position: "absolute",
-              top: { xs: 6, sm: 12 },
-              insetInlineStart: { xs: 6, sm: 12 },
               bgcolor: "secondary.main",
               color: "primary.main",
               fontWeight: 700,
-              height: { xs: 18, sm: 24 },
-              fontSize: { xs: 10, sm: 13 },
-              "& .MuiChip-label": { px: { xs: 0.75, sm: 1 } },
+              height: { xs: 17, sm: 20 },
+              fontSize: { xs: 9, sm: 10.5 },
+              flexShrink: 0,
+              "& .MuiChip-label": { px: 0.9 },
             }}
           />
         )}
-        {/* لما تنرفع صورة للصنف من لوحة التحكم، بتنعرض هون تلقائيًا؛ إذا
-            ما في صورة بعد، بيضل شكل الأيقونة الرمادية الافتراضي. */}
-        {image ? (
-          <Box
-            component="img"
-            src={image}
-            alt={name}
-            loading="lazy"
-            sx={{ width: "100%", height: "100%", objectFit: "cover" }}
-          />
-        ) : (
-          <ImageOutlinedIcon sx={{ fontSize: { xs: 32, sm: 56, md: 80 }, color: "secondary.main", opacity: 0.6 }} />
-        )}
-      </Box>
-      <CardContent
+      </Stack>
+
+      {/* الخط المنقط الفاصل بين الاسم والسعر - عنصر بصري بس، ما إله أي
+          معنى دلالي، فمخفي عن قارئ الشاشة */}
+      <Box
+        aria-hidden="true"
         sx={{
-          display: "flex",
-          flexDirection: { xs: "column", sm: "row" },
-          justifyContent: "space-between",
-          alignItems: { xs: "flex-start", sm: "baseline" },
-          gap: { xs: 0.5, sm: 0 },
-          px: 0,
-          py: { xs: 1, sm: 2 },
-          "&:last-child": { pb: { xs: 1, sm: 2 } },
+          flex: 1,
+          minWidth: 16,
+          borderBottom: "2px dotted",
+          borderColor: "rgba(31,77,43,0.25)",
+          mb: "5px",
+        }}
+      />
+
+      <Typography
+        sx={{
+          fontFamily: '"IBM Plex Sans Arabic"',
+          fontWeight: 700,
+          color: "primary.main",
+          fontSize: { xs: 13.5, sm: 16 },
+          whiteSpace: "nowrap",
+          flexShrink: 0,
         }}
       >
-        <Typography
-          sx={{
-            fontFamily: '"IBM Plex Sans Arabic"',
-            fontWeight: 700,
-            color: "primary.main",
-            fontSize: { xs: 12.5, sm: 15 },
-            lineHeight: 1.35,
-            display: "-webkit-box",
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: "vertical",
-            overflow: "hidden",
-          }}
-        >
-          {name}
-        </Typography>
-        <Typography
-          sx={{
-            fontFamily: '"IBM Plex Sans Arabic"',
-            fontWeight: 700,
-            color: "primary.main",
-            fontSize: { xs: 12.5, sm: 15 },
-            whiteSpace: "nowrap",
-            opacity: 0.9,
-          }}
-        >
-          {price.toFixed(2)} ₪
-        </Typography>
-      </CardContent>
-    </Card>
+        {price.toFixed(2)} ₪
+      </Typography>
+    </Stack>
   );
 }
 
@@ -91,7 +80,7 @@ export default function MenuSection({ id, title, items, count }) {
           بيضل ملزوق أعلى الشاشة (top: 0) طول ما جسم القسم (Box الحاوي)
           نفسه لسا ظاهر بمنطقة التمرير، وأول ما ننتقل لقسم تاني بيطلع من
           الشاشة وياخذ مكانه عنوان القسم الجديد تلقائيًا. خط رفيع تحته
-          يساعد العين تفصل العنوان الثابت عن الكروت يلي عم تتحرك تحته. */}
+          يساعد العين تفصل العنوان الثابت عن الأصناف يلي عم تتحرك تحته. */}
       <Stack
         direction="row"
         alignItems="baseline"
@@ -102,7 +91,7 @@ export default function MenuSection({ id, title, items, count }) {
           zIndex: 2,
           bgcolor: "background.default",
           py: { xs: 1.1, sm: 1.5 },
-          mb: { xs: 1.5, sm: 2 },
+          mb: { xs: 0.5, sm: 1 },
           borderBottom: "1px solid rgba(31,77,43,0.08)",
         }}
       >
@@ -117,11 +106,11 @@ export default function MenuSection({ id, title, items, count }) {
           {count} صنف
         </Typography>
       </Stack>
-      <Grid container spacing={{ xs: 1.25, sm: 2, md: 3 }}>
+      <Stack>
         {items.map((it) => (
-          <Grid item xs={4} sm={4} md={4} key={it.name}><ProductCard {...it} /></Grid>
+          <MenuItemRow key={it.name} {...it} />
         ))}
-      </Grid>
+      </Stack>
     </Box>
   );
 }
