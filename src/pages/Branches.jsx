@@ -218,8 +218,10 @@ export default function Branches() {
     .map((id) => allCustomers.find((c) => c.id === id))
     .filter(Boolean);
 
-  // === تبويب "نبذة عنا" عند العميل بشات الويب ===
-  const [aboutText, setAboutText] = useState(() => getCached(`establishmentDetail:${establishmentId}`)?.aboutText || "");
+  // === تبويب "الديلفري" عند العميل بشات الويب (كان اسمه "نبذة عنا") ===
+  const [deliveryWhatsAppNumber, setDeliveryWhatsAppNumber] = useState(
+    () => getCached(`establishmentDetail:${establishmentId}`)?.deliveryWhatsAppNumber || ""
+  );
   const [aboutSaving, setAboutSaving] = useState(false);
   const [aboutSaved, setAboutSaved] = useState(false);
   const [aboutError, setAboutError] = useState("");
@@ -229,11 +231,11 @@ export default function Branches() {
     setAboutSaved(false);
     setAboutError("");
     try {
-      await establishmentsApi.update(establishmentId, { aboutText });
+      await establishmentsApi.update(establishmentId, { deliveryWhatsAppNumber: deliveryWhatsAppNumber.trim() });
       setAboutSaved(true);
       setTimeout(() => setAboutSaved(false), 2500);
     } catch (err) {
-      setAboutError(err.message || "تعذّر حفظ نبذة عنّا");
+      setAboutError(err.message || "تعذّر حفظ رقم الديلفري");
     } finally {
       setAboutSaving(false);
     }
@@ -270,7 +272,7 @@ export default function Branches() {
         setPromoText(est.promoText || "");
         setPromoAudience(est.promoTextAudience || "all");
         setPromoCustomerIds((est.promoTextCustomerIds || []).map((id) => (typeof id === "string" ? id : id._id || id)));
-        setAboutText(est.aboutText || "");
+        setDeliveryWhatsAppNumber(est.deliveryWhatsAppNumber || "");
       })
       .catch(() => {});
   }, [establishmentId]);
@@ -865,30 +867,28 @@ export default function Branches() {
         </Stack>
       </Paper>
 
-      {/* تبويب "نبذة عنا" عند العميل بشات الويب */}
+      {/* تبويب "الديلفري" عند العميل بشات الويب (كان اسمه "نبذة عنا") */}
       <Paper elevation={0} sx={cardStyle}>
         <Stack spacing={2.5}>
           <Stack direction="row" spacing={1.2} alignItems="center">
             <InfoRoundedIcon sx={{ color: tokens.muted }} />
             <Stack spacing={0.3}>
               <Typography sx={{ fontFamily: '"IBM Plex Sans Arabic"', fontWeight: 700, fontSize: "0.95rem" }}>
-                نبذة عنا
+                الديلفري
               </Typography>
               <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                النص يلي بيظهر لتبويب "نبذة عنا" بشات الويب - عرّف الزبون بمنشأتك، قصتها، أو أي شي بتحب تشاركه معه.
+                رقم واتساب التوصيل - بيظهر بتبويب "الديلفري" بشات الويب، وبيدوس عليه العميل ليفتحله محادثة واتساب مباشرة مع هاد الرقم لطلب توصيل.
               </Typography>
             </Stack>
           </Stack>
 
           <TextField
-            label="نبذة عنا"
+            label="رقم واتساب التوصيل"
             size="small"
             fullWidth
-            multiline
-            minRows={4}
-            value={aboutText}
-            onChange={(e) => setAboutText(e.target.value)}
-            placeholder="عرّفنا بمنشأتك..."
+            value={deliveryWhatsAppNumber}
+            onChange={(e) => setDeliveryWhatsAppNumber(e.target.value)}
+            placeholder="مثال: 970599123456 (بالصيغة الدولية، بدون + أو 00)"
             sx={{ "& .MuiOutlinedInput-root": { borderRadius: "12px" } }}
           />
 
@@ -913,7 +913,7 @@ export default function Branches() {
                 "&:hover": { backgroundColor: tokens.inkSoft || tokens.ink },
               }}
             >
-              {aboutSaving ? "جاري الحفظ…" : "حفظ نبذة عنا"}
+              {aboutSaving ? "جاري الحفظ…" : "حفظ رقم الديلفري"}
             </Button>
             {aboutSaved && (
               <Typography variant="caption" sx={{ color: "success.main", fontWeight: 700 }}>

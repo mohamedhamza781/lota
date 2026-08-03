@@ -354,11 +354,45 @@ function AccountView({ slug, chatId }) {
             <CameraIcon />
           </span>
         </button>
-        <div style={{ minWidth: 0 }}>
+        <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ fontWeight: 700, fontSize: 16, color: THEME.textPrimary, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             {customer?.name || "عميل"}
           </div>
           <div style={{ fontSize: 13, color: THEME.textSecondary, marginTop: 2, direction: "ltr", textAlign: "right" }}>{customer?.phone || "—"}</div>
+          {(profile?.membershipCode || profile?.lastVisitAt) && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 6 }}>
+              {profile?.membershipCode && (
+                <span
+                  style={{
+                    fontSize: 10.5,
+                    fontWeight: 700,
+                    color: THEME.accent,
+                    background: `${THEME.accent}14`,
+                    borderRadius: 8,
+                    padding: "2px 8px",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  رقم العضوية: {profile.membershipCode}
+                </span>
+              )}
+              {profile?.lastVisitAt && (
+                <span
+                  style={{
+                    fontSize: 10.5,
+                    fontWeight: 600,
+                    color: THEME.textSecondary,
+                    background: "#F1F5F9",
+                    borderRadius: 8,
+                    padding: "2px 8px",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  آخر زيارة: {formatDate(profile.lastVisitAt)}
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -920,8 +954,32 @@ function MenuCurtainReveal({ trigger, THEME, logoUrl, establishmentName, childre
   );
 }
 
-function AboutView({ aboutText, establishmentName, logoUrl }) {
+function DeliveryIcon() {
+  return (
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="1" y="3" width="15" height="13" rx="1.5" />
+      <path d="M16 8h4l3 3v5h-7V8z" />
+      <circle cx="5.5" cy="19" r="2" />
+      <circle cx="17.5" cy="19" r="2" />
+    </svg>
+  );
+}
+
+function WhatsAppButtonIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M17.6 6.32A7.85 7.85 0 0 0 12.01 4C7.58 4 4 7.58 4 12c0 1.4.37 2.75 1.06 3.94L4 20l4.16-1.03A7.94 7.94 0 0 0 12 20c4.42 0 8-3.58 8-8 0-2.13-.83-4.13-2.4-5.68zM12 18.5c-1.24 0-2.45-.33-3.5-.96l-.25-.15-2.47.61.63-2.41-.16-.25A6.47 6.47 0 0 1 5.5 12c0-3.58 2.92-6.5 6.5-6.5 1.74 0 3.37.68 4.6 1.9a6.45 6.45 0 0 1 1.9 4.6c0 3.58-2.92 6.5-6.5 6.5zm3.55-4.86c-.2-.1-1.16-.57-1.34-.64-.18-.07-.31-.1-.44.1-.13.2-.5.63-.62.77-.11.13-.23.15-.42.05-.2-.1-.83-.31-1.58-.99-.58-.52-.98-1.16-1.09-1.36-.11-.2-.01-.3.09-.4.09-.09.2-.24.3-.36.1-.12.13-.2.2-.33.07-.13.03-.25-.02-.36-.05-.1-.44-1.07-.6-1.46-.16-.38-.32-.33-.44-.34-.11 0-.24-.01-.37-.01-.13 0-.34.05-.52.25-.18.2-.68.66-.68 1.62s.7 1.88.8 2.01c.1.13 1.37 2.1 3.33 2.94.47.2.83.32 1.11.42.47.15.89.13 1.23.08.37-.06 1.16-.47 1.32-.93.16-.46.16-.85.11-.93-.05-.08-.18-.13-.38-.23z" />
+    </svg>
+  );
+}
+
+// تبويب "الديلفري" (كان اسمه "نبذة عنا") - رقم واتساب توصيل بيحدده صاحب
+// المنشأة من الداشبورد، والعميل بيدوس عليه ويفتح محادثة واتساب مباشرة
+// معه لطلب توصيل
+function DeliveryView({ deliveryWhatsAppNumber, establishmentName, logoUrl }) {
   const THEME = useContext(ThemeContext);
+  const cleanNumber = (deliveryWhatsAppNumber || "").replace(/[^\d]/g, "");
+
   return (
     <div className="wc-scroll" style={{ flex: 1, overflowY: "auto", padding: "20px 18px 28px", display: "flex", flexDirection: "column", gap: 16 }}>
       {/* رأس ملوّن - شعار المنشأة + العنوان (لون صلب بدون تدرّج) */}
@@ -954,44 +1012,52 @@ function AboutView({ aboutText, establishmentName, logoUrl }) {
           {logoUrl ? (
             <img loading="lazy" src={resolveImageUrl(logoUrl)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           ) : (
-            <InfoIcon />
+            <DeliveryIcon />
           )}
         </div>
-        <div style={{ fontWeight: 700, fontSize: 17 }}>نبذة عن {establishmentName || "المنشأة"}</div>
+        <div style={{ fontWeight: 700, fontSize: 17 }}>ديلفري {establishmentName || "المنشأة"}</div>
       </div>
 
       {/* المحتوى */}
-      {aboutText ? (
+      {cleanNumber ? (
         <div
           style={{
-            position: "relative",
             background: "#fff",
             borderRadius: 18,
-            padding: "28px 22px 22px",
+            padding: "26px 22px",
             border: `1px solid ${THEME.border}`,
             boxShadow: "0 6px 20px rgba(0,0,0,0.05)",
-            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 16,
+            textAlign: "center",
           }}
         >
-          <div
+          <DeliveryIcon />
+          <p style={{ fontSize: 14, lineHeight: 1.9, color: THEME.textPrimary, margin: 0 }}>
+            بدك توصيل؟ تواصل معنا مباشرة عالواتساب وخلّينا نجهّزلك طلبك.
+          </p>
+          <a
+            href={`https://wa.me/${cleanNumber}`}
+            target="_blank"
+            rel="noopener noreferrer"
             style={{
-              position: "absolute",
-              top: 2,
-              insetInlineStart: 16,
-              fontSize: 54,
-              fontWeight: 800,
-              color: THEME.accent,
-              opacity: 0.14,
-              lineHeight: 1,
-              fontFamily: "Georgia, serif",
-              pointerEvents: "none",
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              textDecoration: "none",
+              background: "#25D366",
+              color: "#fff",
+              fontWeight: 700,
+              fontSize: 14,
+              borderRadius: 12,
+              padding: "12px 24px",
             }}
           >
-            "
-          </div>
-          <p style={{ fontSize: 14.5, lineHeight: 2, color: THEME.textPrimary, whiteSpace: "pre-wrap", margin: 0, position: "relative" }}>
-            {aboutText}
-          </p>
+            <WhatsAppButtonIcon />
+            تواصل عبر واتساب
+          </a>
         </div>
       ) : (
         <div
@@ -1005,8 +1071,8 @@ function AboutView({ aboutText, establishmentName, logoUrl }) {
             color: THEME.textSecondary,
           }}
         >
-          <InfoIcon />
-          <div style={{ fontSize: 13.5, textAlign: "center" }}>ما في نبذة مضافة عن المطعم حالياً</div>
+          <DeliveryIcon />
+          <div style={{ fontSize: 13.5, textAlign: "center" }}>خدمة الديلفري مش متاحة حالياً</div>
         </div>
       )}
     </div>
@@ -1804,6 +1870,123 @@ function InstalledAppHint({ isStandaloneNow }) {
   );
 }
 
+// شريط "لا يوجد اتصال بالإنترنت" - بيظهر بس لما فعلياً ينقطع النت
+// (navigator.onLine)، وبيختفي لحاله لما يرجع. ما بيمنع أي تنقّل بين
+// التبويبات - البيانات يلي كانت محمّلة قبل انقطاع النت بتضل ظاهرة زي ما
+// هي (React state محفوظة بالذاكرة)، بس أي طلب جديد (تحميل بيانات
+// جديدة، إرسال رسالة...) رح يفشل لحد ما يرجع النت
+function OfflineBanner() {
+  const [isOffline, setIsOffline] = useState(() => !navigator.onLine);
+
+  useEffect(() => {
+    const goOffline = () => setIsOffline(true);
+    const goOnline = () => setIsOffline(false);
+    window.addEventListener("offline", goOffline);
+    window.addEventListener("online", goOnline);
+    return () => {
+      window.removeEventListener("offline", goOffline);
+      window.removeEventListener("online", goOnline);
+    };
+  }, []);
+
+  if (!isOffline) return null;
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        bottom: "calc(64px + env(safe-area-inset-bottom, 0px))",
+        left: 12,
+        right: 12,
+        zIndex: 60,
+        background: "#1F2937",
+        color: "#fff",
+        borderRadius: 14,
+        padding: "10px 14px",
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        boxShadow: "0 10px 24px -6px rgba(0,0,0,0.3)",
+        fontSize: 12.5,
+        fontWeight: 600,
+      }}
+    >
+      <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#F59E0B", flexShrink: 0 }} />
+      لا يوجد اتصال بالإنترنت حالياً - بتقدر تتنقّل بين الشاشات، بس البيانات الجديدة ما رح تتحدّث لحد ما يرجع النت
+    </div>
+  );
+}
+
+// تذكير غير حاجز (مش شاشة كاملة) - بيظهر لو عدّى ١٢ ساعة من آخر مسح QR
+// حقيقي، يذكّر العميل إنه لازم يمسح QR من جديد عشان تُحسب له زيارة
+// جديدة بنقاطها - بس بدون ما يمنعه من تصفّح المنيو أو حسابه أو نقاطه
+// إطلاقاً، خلافاً لشاشة "لازم تمسح QR" الحاجزة يلي بتظهر بس لعميل جديد
+// كلياً ما سجّل أبداً (شوف NeedQrScreen)
+const QR_REMINDER_WINDOW_MS = 12 * 60 * 60 * 1000;
+const QR_REMINDER_DISMISS_KEY_PREFIX = "lotality_qr_reminder_dismissed:";
+
+function QrReminderBanner({ slug, chatId }) {
+  const THEME = useContext(ThemeContext);
+  const [dismissed, setDismissed] = useState(false);
+
+  const shouldShow = useMemo(() => {
+    if (!chatId) return false;
+    try {
+      const lastScan = Number(localStorage.getItem(`lotality_last_qr_scan:${slug}`)) || 0;
+      if (!lastScan) return false; // ما عنا سجل وقت مسح - ما منظهر تذكير بدون مرجعية حقيقية
+      const elapsed = Date.now() - lastScan;
+      if (elapsed < QR_REMINDER_WINDOW_MS) return false;
+
+      // لو سبق وسكّر التذكير هلق (نفس الفترة)، ما نرجّع نضايقه فوراً -
+      // بس دقيقة تبريد بسيطة (30 دقيقة) قبل ما يرجع يظهر تاني
+      const dismissedAt = Number(localStorage.getItem(QR_REMINDER_DISMISS_KEY_PREFIX + slug)) || 0;
+      if (Date.now() - dismissedAt < 30 * 60 * 1000) return false;
+
+      return true;
+    } catch {
+      return false;
+    }
+  }, [slug, chatId]);
+
+  if (!shouldShow || dismissed) return null;
+
+  function dismiss() {
+    setDismissed(true);
+    try {
+      localStorage.setItem(QR_REMINDER_DISMISS_KEY_PREFIX + slug, String(Date.now()));
+    } catch {
+      // تجاهل
+    }
+  }
+
+  return (
+    <div
+      style={{
+        margin: "8px 12px 0",
+        padding: "9px 12px",
+        borderRadius: 12,
+        background: `${THEME.accent}14`,
+        border: `1px solid ${THEME.accent}30`,
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        flexShrink: 0,
+      }}
+    >
+      <span style={{ fontSize: 12, color: THEME.textPrimary, flex: 1, lineHeight: 1.6 }}>
+        بلّشت زيارة جديدة؟ امسح رمز QR الموجود بالمحل عشان تُحسب لك الزيارة ونقاطها 📲
+      </span>
+      <button
+        onClick={dismiss}
+        aria-label="إغلاق"
+        style={{ border: "none", background: "transparent", color: THEME.textSecondary, cursor: "pointer", padding: 2, fontSize: 15, lineHeight: 1, flexShrink: 0 }}
+      >
+        ×
+      </button>
+    </div>
+  );
+}
+
 function IntroScreen({ name, establishmentName, logoUrl, onContinue, installBannerProps }) {
   const THEME = useContext(ThemeContext);
   const firstName = (name || "").trim().split(/\s+/)[0] || "";
@@ -1998,11 +2181,16 @@ export default function WebChat() {
   // الريفرش بس بتنمسح لو سكّر التاب/فتح من جديد - فالحماية الأصلية (منع
   // رابط متشارك من احتساب زيارة) ضلّت شغالة زي ما هي.
   const viaQrSessionKey = `webchat_via_qr_${slug}`;
+  // وقت آخر مسح QR فعلي (مش مسح وهمي/رابط قديم) - بنستخدمه لاحقاً لعرض
+  // تذكير بسيط (مش شاشة حاجزة) بعد ١٢ ساعة يقول للعميل "امسح QR من جديد
+  // عشان تسجّل زيارة جديدة" - شوف QrReminderBanner تحت
+  const lastQrScanKey = `lotality_last_qr_scan:${slug}`;
   const [viaQr] = useState(() => {
     const fromUrl = new URLSearchParams(window.location.search).get("src") === "qr";
     if (fromUrl) {
       try {
         sessionStorage.setItem(viaQrSessionKey, "1");
+        localStorage.setItem(lastQrScanKey, String(Date.now()));
       } catch {
         // تجاهل - لو sessionStorage مش متاح، بنكمل بس بدون استمرارية عبر الريفرش
       }
@@ -2072,7 +2260,7 @@ export default function WebChat() {
     if (localStorage.getItem(storageKey)) return "chat";
     return viaQr ? "welcome" : "needQr";
   });
-  const [aboutText, setAboutText] = useState("");
+  const [deliveryWhatsAppNumber, setDeliveryWhatsAppNumber] = useState("");
   const [promoText, setPromoText] = useState("");
   const [promotions, setPromotions] = useState([]);
   const [welcomeName, setWelcomeName] = useState("");
@@ -2142,7 +2330,7 @@ export default function WebChat() {
     }
     fetchWebChatInfo(slug, savedChatId)
       .then((data) => {
-        setAboutText(data?.aboutText || "");
+        setDeliveryWhatsAppNumber(data?.deliveryWhatsAppNumber || "");
         setPromoText(data?.promoText || "");
         setPromotions(data?.promotions || []);
         setEarlyInfo(data);
@@ -2559,6 +2747,8 @@ export default function WebChat() {
     >
       <InstallBanner {...installBannerProps} establishmentName={establishment?.establishmentName} />
       <InstalledAppHint isStandaloneNow={isStandaloneNow} />
+      <OfflineBanner />
+      <QrReminderBanner slug={slug} chatId={chatId} />
 
       {/* ----------------- الهيدر العلوي - بس بتبويب الشات ----------------- */}
       {activeTab === "chat" && (
@@ -2602,20 +2792,6 @@ export default function WebChat() {
           ) : (
             headerInitial
           )}
-          {connectionState === "connected" && (
-            <span
-              style={{
-                position: "absolute",
-                bottom: 1,
-                right: 1,
-                width: 10,
-                height: 10,
-                borderRadius: "50%",
-                background: THEME.accent,
-                border: "2px solid #0F5C47",
-              }}
-            />
-          )}
         </div>
 
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -2656,8 +2832,8 @@ export default function WebChat() {
           </div>
         </MenuCurtainReveal>
       ) : activeTab === "about" ? (
-        <AboutView
-          aboutText={aboutText}
+        <DeliveryView
+          deliveryWhatsAppNumber={deliveryWhatsAppNumber}
           establishmentName={establishment?.establishmentName || earlyInfo?.name}
           logoUrl={establishment?.establishmentLogo || earlyInfo?.logoUrl}
         />
@@ -2959,7 +3135,7 @@ export default function WebChat() {
           { key: "menu", label: "المنيو", icon: <MenuIcon /> },
           { key: "coupons", label: "الهدايا", icon: <TicketIcon /> },
           { key: "account", label: "حسابي", icon: <PersonIcon /> },
-          { key: "about", label: "نبذة عنا", icon: <InfoIcon /> },
+          { key: "about", label: "الديلفري", icon: <DeliveryIcon /> },
         ].map((tab) => (
           <button
             key={tab.key}
