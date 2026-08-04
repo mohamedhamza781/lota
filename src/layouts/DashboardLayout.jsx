@@ -34,7 +34,7 @@ import RestaurantMenuRoundedIcon from "@mui/icons-material/RestaurantMenuRounded
 import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
 import InsightsRoundedIcon from "@mui/icons-material/InsightsRounded";
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTheme } from "@mui/material/styles";
 import { tokens } from "../theme/theme";
 import { resolveImageUrl } from "../api/uploads";
@@ -58,6 +58,21 @@ export default function DashboardLayout() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  // 🩹 باگ معروف بمكتبة MUI: درج القائمة الجانبية بالجوال (Drawer تحت)
+  // مضبوط ModalProps={{ keepMounted: true }}، وعناصره بتسكر الدرج
+  // (setMobileOpen(false)) وبتنقل لصفحة جديدة (NavLink) بنفس الضغطة.
+  // لما الاثنين (تسكير الدرج + تغيير الراوت) بيصيروا سوا، أحياناً
+  // ModalManager تبع MUI ما بينظّف قفل السكرول (overflow:hidden +
+  // padding-right) يلي بيحطه على body لما يفتح أي Dialog/Drawer -
+  // فبتضل الصفحة الجديدة "مقفولة" (ما بتقبل ضغط ولا سكرول) لحد ما
+  // تعمل رفرش يدوي. هاد إصلاح دفاعي: كل ما يتغير الراوت (يعني كل
+  // تنقل ناجح)، منتأكد إنه body مو عالق بقفل قديم ومنحرره بالقوة.
+  useEffect(() => {
+    document.body.style.removeProperty("overflow");
+    document.body.style.removeProperty("padding-right");
+    document.body.style.removeProperty("pointer-events");
+  }, [location.pathname]);
 
   const ALL_NAV_ITEMS = [
     { to: base, label: "نظرة عامة", icon: SpaceDashboardRoundedIcon, end: true },
