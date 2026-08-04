@@ -2019,7 +2019,7 @@ function OfflineBanner({ connectionState }) {
 // الكومنت جوا شاشة الشات) بتظهر بس لو عدّى ١٢ ساعة (نفس VISIT_WINDOW_HOURS
 // المستخدمة بالباك إند) من آخر مسح QR فعلي، وبتفتح ماسح QR داخل نفس
 // الصفحة (InChatQrScanner تحت) بدل ما يطلع العميل من التطبيق أصلاً
-const QR_REMINDER_WINDOW_MS = 12 * 60 * 60 * 1000;
+const QR_REMINDER_WINDOW_MS = 3 * 60 * 1000;
 
 function QrRescanIcon({ visible, onClick }) {
   if (!visible) return null;
