@@ -973,8 +973,8 @@ function MenuCurtainReveal({ trigger, THEME, logoUrl, establishmentName, childre
               justifyContent: "center",
               color: "#fff",
               opacity: 0.95,
-              animation: "curtainIconFade 0.6s ease forwards",
-              animationDelay: "0.3s",
+              animation: "curtainIconFade 0.7s ease forwards",
+              animationDelay: "1.5s",
               pointerEvents: "none",
             }}
           >
