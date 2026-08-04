@@ -2015,71 +2015,179 @@ function OfflineBanner({ connectionState }) {
   );
 }
 
-// تذكير غير حاجز (مش شاشة كاملة) - بيظهر لو عدّى ١٢ ساعة من آخر مسح QR
-// حقيقي، يذكّر العميل إنه لازم يمسح QR من جديد عشان تُحسب له زيارة
-// جديدة بنقاطها - بس بدون ما يمنعه من تصفّح المنيو أو حسابه أو نقاطه
-// إطلاقاً، خلافاً لشاشة "لازم تمسح QR" الحاجزة يلي بتظهر بس لعميل جديد
-// كلياً ما سجّل أبداً (شوف NeedQrScreen)
+// أيقونة بسيطة بالهيدر (مش بانر نص - النص كان اتشال قصداً بطلب سابق، شوف
+// الكومنت جوا شاشة الشات) بتظهر بس لو عدّى ١٢ ساعة (نفس VISIT_WINDOW_HOURS
+// المستخدمة بالباك إند) من آخر مسح QR فعلي، وبتفتح ماسح QR داخل نفس
+// الصفحة (InChatQrScanner تحت) بدل ما يطلع العميل من التطبيق أصلاً
 const QR_REMINDER_WINDOW_MS = 12 * 60 * 60 * 1000;
-const QR_REMINDER_DISMISS_KEY_PREFIX = "lotality_qr_reminder_dismissed:";
 
-function QrReminderBanner({ slug, chatId }) {
-  const THEME = useContext(ThemeContext);
-  const [dismissed, setDismissed] = useState(false);
-
-  const shouldShow = useMemo(() => {
-    if (!chatId) return false;
-    try {
-      const lastScan = Number(localStorage.getItem(`lotality_last_qr_scan:${slug}`)) || 0;
-      if (!lastScan) return false; // ما عنا سجل وقت مسح - ما منظهر تذكير بدون مرجعية حقيقية
-      const elapsed = Date.now() - lastScan;
-      if (elapsed < QR_REMINDER_WINDOW_MS) return false;
-
-      // لو سبق وسكّر التذكير هلق (نفس الفترة)، ما نرجّع نضايقه فوراً -
-      // بس دقيقة تبريد بسيطة (30 دقيقة) قبل ما يرجع يظهر تاني
-      const dismissedAt = Number(localStorage.getItem(QR_REMINDER_DISMISS_KEY_PREFIX + slug)) || 0;
-      if (Date.now() - dismissedAt < 30 * 60 * 1000) return false;
-
-      return true;
-    } catch {
-      return false;
-    }
-  }, [slug, chatId]);
-
-  if (!shouldShow || dismissed) return null;
-
-  function dismiss() {
-    setDismissed(true);
-    try {
-      localStorage.setItem(QR_REMINDER_DISMISS_KEY_PREFIX + slug, String(Date.now()));
-    } catch {
-      // تجاهل
-    }
-  }
-
+function QrRescanIcon({ visible, onClick }) {
+  if (!visible) return null;
   return (
-    <div
+    <button
+      onClick={onClick}
+      aria-label="امسح QR لتسجيل زيارة جديدة"
+      title="امسح QR لتسجيل زيارة جديدة"
       style={{
-        margin: "8px 12px 0",
-        padding: "9px 12px",
-        borderRadius: 12,
-        background: `${THEME.accent}14`,
-        border: `1px solid ${THEME.accent}30`,
+        width: 38,
+        height: 38,
+        borderRadius: "50%",
+        border: "none",
+        background: "rgba(255,255,255,0.16)",
+        color: "#fff",
         display: "flex",
         alignItems: "center",
-        gap: 8,
+        justifyContent: "center",
+        cursor: "pointer",
         flexShrink: 0,
       }}
     >
-      <span style={{ fontSize: 12, color: THEME.textPrimary, flex: 1, lineHeight: 1.6 }}>
-        بلّشت زيارة جديدة؟ امسح رمز QR الموجود بالمحل عشان تُحسب لك الزيارة ونقاطها 📲
-      </span>
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="3" y="3" width="7" height="7" rx="1.2" stroke="currentColor" strokeWidth="2" />
+        <rect x="14" y="3" width="7" height="7" rx="1.2" stroke="currentColor" strokeWidth="2" />
+        <rect x="3" y="14" width="7" height="7" rx="1.2" stroke="currentColor" strokeWidth="2" />
+        <path d="M14 14h3v3h-3zM19 14h2v2h-2zM14 19h2v2h-2zM19 19h2v2h-2z" fill="currentColor" />
+      </svg>
+    </button>
+  );
+}
+
+// ماسح QR جوا نفس صفحة الشات (بدل ما نطلع عالكاميرا الافتراضية تبع
+// الجوال، يلي كان بيرجع يفتح رابط جديد بريفرش كامل للصفحة - وهاد بالظبط
+// كان مصدر مشاكل "رجعني عالتسجيل" يلي حكينا عنها). بيتحقق إنه الكود
+// الممسوح هو فعلاً رابط شات الويب تبع نفس هاد المحل بعلامة ?src=qr (نفس
+// الرابط يلي getQrCode بـwebChat.controller.js بيولّده) قبل ما يعتبره
+// مسح صحيح - مش أي كود QR عشوائي حاطينه قدام الكاميرا. الاعتماد على
+// html5-qrcode (مكتبة خفيفة شغالة بمتصفح، بدون أي حاجة لتطبيق كاميرا خارجي)
+function InChatQrScanner({ slug, onSuccess, onClose }) {
+  const THEME = useContext(ThemeContext);
+  const [status, setStatus] = useState("starting"); // starting | scanning | error
+  const [errorText, setErrorText] = useState("");
+  const scannerRef = useRef(null);
+  const containerId = "wc-inchat-qr-reader";
+
+  useEffect(() => {
+    let cancelled = false;
+    let html5QrCode = null;
+
+    import("html5-qrcode")
+      .then(({ Html5Qrcode }) => {
+        if (cancelled) return undefined;
+        html5QrCode = new Html5Qrcode(containerId);
+        scannerRef.current = html5QrCode;
+
+        return html5QrCode.start(
+          { facingMode: "environment" },
+          { fps: 10, qrbox: { width: 240, height: 240 } },
+          (decodedText) => {
+            if (cancelled) return;
+
+            let isValid = false;
+            try {
+              const url = new URL(decodedText);
+              isValid = url.pathname === `/chat/${slug}` && url.searchParams.get("src") === "qr";
+            } catch {
+              isValid = false;
+            }
+
+            if (!isValid) {
+              setErrorText("هاد مش كود QR الخاص فينا - جرب تمسح الكود الموجود بالمحل مباشرة");
+              return;
+            }
+
+            cancelled = true;
+            html5QrCode
+              .stop()
+              .catch(() => {})
+              .finally(() => onSuccess());
+          },
+          () => {
+            // فريم ما لقى فيه كود - عادي جداً وبيصير كل فريم، مش خطأ
+            // حقيقي نعرضه للعميل
+          }
+        );
+      })
+      .then(() => {
+        if (!cancelled) setStatus("scanning");
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setStatus("error");
+        setErrorText(
+          err?.name === "NotAllowedError"
+            ? "لازم تسمح بصلاحية الكاميرا من إعدادات المتصفح عشان تقدر تمسح الكود"
+            : "تعذّر تشغيل الكاميرا - جرب تاني"
+        );
+      });
+
+    return () => {
+      cancelled = true;
+      if (scannerRef.current) {
+        scannerRef.current
+          .stop()
+          .catch(() => {})
+          .finally(() => {
+            try {
+              scannerRef.current?.clear?.();
+            } catch {
+              // تجاهل
+            }
+          });
+      }
+    };
+  }, [slug, onSuccess]);
+
+  return (
+    <div
+      dir="rtl"
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(0,0,0,0.92)",
+        zIndex: 200,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 20,
+      }}
+    >
+      <div style={{ color: "#fff", fontWeight: 700, fontSize: 16, marginBottom: 14, textAlign: "center" }}>
+        وجّه الكاميرا على كود QR الموجود بالمحل
+      </div>
+      <div
+        id={containerId}
+        style={{
+          width: "min(320px, 88vw)",
+          aspectRatio: "1 / 1",
+          borderRadius: 20,
+          overflow: "hidden",
+          border: `2px solid ${THEME.accent || "#25D366"}`,
+        }}
+      />
+      {status === "starting" && (
+        <div style={{ color: "#fff", opacity: 0.75, fontSize: 13, marginTop: 14 }}>جاري تشغيل الكاميرا...</div>
+      )}
+      {errorText && (
+        <div style={{ color: "#FCA5A5", fontSize: 13, marginTop: 14, textAlign: "center", maxWidth: 320 }}>
+          {errorText}
+        </div>
+      )}
       <button
-        onClick={dismiss}
-        aria-label="إغلاق"
-        style={{ border: "none", background: "transparent", color: THEME.textSecondary, cursor: "pointer", padding: 2, fontSize: 15, lineHeight: 1, flexShrink: 0 }}
+        onClick={onClose}
+        style={{
+          marginTop: 22,
+          border: "1.5px solid rgba(255,255,255,0.35)",
+          background: "transparent",
+          color: "#fff",
+          borderRadius: 999,
+          padding: "10px 26px",
+          fontSize: 14,
+          fontWeight: 600,
+          cursor: "pointer",
+        }}
       >
-        ×
+        إلغاء
       </button>
     </div>
   );
@@ -2285,9 +2393,8 @@ export default function WebChat() {
   // الريفرش بس بتنمسح لو سكّر التاب/فتح من جديد - فالحماية الأصلية (منع
   // رابط متشارك من احتساب زيارة) ضلّت شغالة زي ما هي.
   const viaQrSessionKey = `webchat_via_qr_${slug}`;
-  // وقت آخر مسح QR فعلي (مش مسح وهمي/رابط قديم) - بنستخدمه لاحقاً لعرض
-  // تذكير بسيط (مش شاشة حاجزة) بعد ١٢ ساعة يقول للعميل "امسح QR من جديد
-  // عشان تسجّل زيارة جديدة" - شوف QrReminderBanner تحت
+  // وقت آخر مسح QR فعلي (مش مسح وهمي/رابط قديم) - بنستخدمه لاحقاً لتحديد
+  // إظهار أيقونة "امسح QR" بعد ١٢ ساعة (شوف QrRescanIcon/showQrRescanIcon تحت)
   const lastQrScanKey = `lotality_last_qr_scan:${slug}`;
   // نافذة زمنية معقولة (ساعة) نعتبر خلالها "آخر مسح QR" لسا حديث بما
   // فيه الكفاية - عشان لو مسح QR بالمتصفح، وقبل ما يخلّص التسجيل ثبّت
@@ -2396,6 +2503,18 @@ export default function WebChat() {
   // بنستخدمها لعميل راجع (chatId موجود مسبقاً) عشان نحسب زيارة جديدة بس
   // مرة وحدة لكل اتصال، مش في كل مرة السوكيت يعيد الاتصال تلقائياً
   const visitTriggerSentRef = useRef(false);
+
+  // ماسح QR داخل الشات (شوف QrRescanIcon/InChatQrScanner فوق) - showQrScanner
+  // بيتحكم بظهور الكاميرا، وqrIconTick بس عداد بسيط بنزيده كل دقيقة (ومباشرة
+  // بعد مسح ناجح) عشان useMemo تبع showQrRescanIcon تحته يعيد يتحقق من
+  // الوقت المنقضي بدون ما نحتاج ريفرش كامل للصفحة
+  const [showQrScanner, setShowQrScanner] = useState(false);
+  const [qrIconTick, setQrIconTick] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => setQrIconTick((t) => t + 1), 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   // تثبيت PWA - installPromptEvent موجود بس على كروم/أندرويد (بعد ما
   // المتصفح يتأكد إنه الموقع مؤهّل: manifest + service worker + HTTPS).
@@ -2643,6 +2762,49 @@ export default function WebChat() {
       socket.disconnect();
     };
   }, [slug, storageKey, pushMessage, screen, viaQr, referralCode]);
+
+  // نفس شرط "عدّت نافذة الزيارة" يلي الباك إند بيتحقق منه (VISIT_WINDOW_HOURS
+  // بـwhatsapp.service.js، ١٢ ساعة افتراضياً) - بس هون بس عشان نقرر نوري
+  // الأيقونة ولا لأ، مش قرار نهائي (القرار الحقيقي دايماً بالسيرفر)
+  const showQrRescanIcon = useMemo(() => {
+    if (screen !== "chat" || !chatId) return false;
+    try {
+      const lastScan = Number(localStorage.getItem(lastQrScanKey)) || 0;
+      if (!lastScan) return false; // ما عنا مرجعية وقت حقيقية - ما منظهر الأيقونة
+      return Date.now() - lastScan >= QR_REMINDER_WINDOW_MS;
+    } catch {
+      return false;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen, chatId, lastQrScanKey, qrIconTick]);
+
+  // بينفّذ لما مسح QR جوا الشات (InChatQrScanner) ينجح ويتحقق إنه فعلاً
+  // كود هاد المحل - منبعت trigger زيارة جديدة عبر نفس الـsocket المفتوح
+  // أصلاً (بدون أي reload)، بالظبط متل أول اتصال، بس هلق مع viaQr:true
+  // طازة عشان isValidQrVisit بالباك إند يقبلها كزيارة حقيقية جديدة
+  function handleQrRescanSuccess() {
+    setShowQrScanner(false);
+    try {
+      localStorage.setItem(lastQrScanKey, String(Date.now()));
+    } catch {
+      // تجاهل
+    }
+    setQrIconTick((t) => t + 1); // يخفي الأيقونة فوراً لحد ما تعدي ١٢ ساعة تانية
+
+    const emitVisitTrigger = (geo) => {
+      socketRef.current?.emit("client_message", { text: "•", silent: true, geo, viaQr: true });
+    };
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => emitVisitTrigger({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        () => emitVisitTrigger(null),
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
+      );
+    } else {
+      emitVisitTrigger(null);
+    }
+  }
 
   function handleWelcomeSubmit({ name, phone }) {
     setRegistrationError("");
@@ -2997,11 +3159,12 @@ export default function WebChat() {
       <InstallBanner {...installBannerProps} establishmentName={establishment?.establishmentName} />
       <InstalledAppHint isStandaloneNow={isStandaloneNow} />
       <OfflineBanner connectionState={connectionState} />
-      {/* تذكير مسح QR بعد ١٢ ساعة اتشال بناءً على طلب صريح - العميل ما
-          لازم يشوف أي رسالة عن هيك. منطق حساب الزيارة الجديدة بعد ١٢
-          ساعة (isValidQrVisit + VISIT_WINDOW_HOURS بالباك إند) ضل شغال
-          بالكامل بدون أي تغيير - لو مسح QR فعلياً بعد ١٢ ساعة، بتُحسب له
-          زيارة جديدة بصمت زي ما هو، بس من غير ما نعرضله أي تذكير أو رسالة */}
+      {/* تذكير مسح QR بعد ١٢ ساعة كان نص/بانر بالسابق واتشال بناءً على طلب
+          صريح (كان مزعج). هلق بدله أيقونة صغيرة بالهيدر (QrRescanIcon) بس -
+          بتفتح كاميرا داخل نفس الصفحة (InChatQrScanner) فيها العميل يمسح
+          QR الحقيقي بالمحل ويسجّل زيارة جديدة بدون ما يطلع من التطبيق ولا
+          يعمل reload كامل للصفحة. منطق قبول الزيارة نفسه (isValidQrVisit +
+          VISIT_WINDOW_HOURS بالباك إند) ضل زي ما هو بدون أي تغيير */}
 
       {/* ----------------- الهيدر العلوي - بس بتبويب الشات ----------------- */}
       {activeTab === "chat" && (
@@ -3059,7 +3222,13 @@ export default function WebChat() {
             {connectionState === "error" && <span style={{ color: "#FCA5A5" }}>عُطل في الاتصال</span>}
           </div>
         </div>
+
+        <QrRescanIcon visible={showQrRescanIcon} onClick={() => setShowQrScanner(true)} />
       </header>
+      )}
+
+      {showQrScanner && (
+        <InChatQrScanner slug={slug} onSuccess={handleQrRescanSuccess} onClose={() => setShowQrScanner(false)} />
       )}
 
       {activeTab === "home" ? (
