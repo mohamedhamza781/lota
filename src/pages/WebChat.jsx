@@ -1939,17 +1939,32 @@ function InstalledAppHint({ isStandaloneNow }) {
   );
 }
 
-// شريط "لا يوجد اتصال بالإنترنت" - بيظهر بس لما فعلياً ينقطع النت
-// (navigator.onLine)، وبيختفي لحاله لما يرجع. ما بيمنع أي تنقّل بين
-// التبويبات - البيانات يلي كانت محمّلة قبل انقطاع النت بتضل ظاهرة زي ما
-// هي (React state محفوظة بالذاكرة)، بس أي طلب جديد (تحميل بيانات
-// جديدة، إرسال رسالة...) رح يفشل لحد ما يرجع النت
-function OfflineBanner() {
-  const [isOffline, setIsOffline] = useState(() => !navigator.onLine);
+// شريط "لا يوجد اتصال بالإنترنت" - بيظهر لما فعلياً ينقطع النت، وبيختفي
+// لحاله لما يرجع. ما بيمنع أي تنقّل بين التبويبات - البيانات يلي كانت
+// محمّلة قبل انقطاع النت بتضل ظاهرة زي ما هي (React state محفوظة
+// بالذاكرة)، بس أي طلب جديد (تحميل بيانات جديدة، إرسال رسالة...) رح
+// يفشل لحد ما يرجع النت
+//
+// 🩹 قبل هيك كنا معتمدين بس على navigator.onLine/أحداث "online"/"offline" -
+// وهاي بترصد بس إذا كارت الشبكة بالجهاز شغال أصلاً (متصل بشبكة wifi/بيانات
+// أياً كانت)، مش إذا في إنترنت فعلي عالشبكة هاي. يعني بالضبط سيناريو
+// "متصل بشبكة وايفاي بس بدون إنترنت فعلي" (راوتر عم يشتغل بس النت
+// مقطوع عند مزود الخدمة، أو شبكة captive portal...) - navigator.onLine
+// بيضل true وما بينطلق حدث "offline" إطلاقاً، فالشريط ما كان يظهر أبداً
+// بالضبط بالحالة يلي وصفها المستخدم (بيفتح الاختصار ويشوف الواجهة القديمة
+// المخزّنة عادي وكأنه في نت). هلق منضيف كمان حالة اتصال الـsocket
+// الحقيقية (connectionState من نفس الصفحة) كإشارة إضافية وأدق - لو
+// الـsocket نفسه فشل يتصل/انقطع (reconnecting/error) لمدة معقولة، هاد
+// دليل فعلي إنه ما في نت شغال حتى لو navigator.onLine قال العكس.
+const OFFLINE_SOCKET_GRACE_MS = 4000; // ما منستعجل نطلع الشريط لأول محاولة اتصال عادية أو انقطاع لحظي جداً
+
+function OfflineBanner({ connectionState }) {
+  const [networkOffline, setNetworkOffline] = useState(() => !navigator.onLine);
+  const [socketOffline, setSocketOffline] = useState(false);
 
   useEffect(() => {
-    const goOffline = () => setIsOffline(true);
-    const goOnline = () => setIsOffline(false);
+    const goOffline = () => setNetworkOffline(true);
+    const goOnline = () => setNetworkOffline(false);
     window.addEventListener("offline", goOffline);
     window.addEventListener("online", goOnline);
     return () => {
@@ -1957,6 +1972,19 @@ function OfflineBanner() {
       window.removeEventListener("online", goOnline);
     };
   }, []);
+
+  useEffect(() => {
+    if (connectionState !== "reconnecting" && connectionState !== "error") {
+      setSocketOffline(false);
+      return;
+    }
+    // مهلة صغيرة قبل ما نعتبرها فعلياً "قطع نت" - عشان ما نفلش الشريط على
+    // انقطاع لحظي عادي بيصلح لحاله بثانية أو اتنين
+    const timer = setTimeout(() => setSocketOffline(true), OFFLINE_SOCKET_GRACE_MS);
+    return () => clearTimeout(timer);
+  }, [connectionState]);
+
+  const isOffline = networkOffline || socketOffline;
 
   if (!isOffline) return null;
 
@@ -2907,7 +2935,7 @@ export default function WebChat() {
     >
       <InstallBanner {...installBannerProps} establishmentName={establishment?.establishmentName} />
       <InstalledAppHint isStandaloneNow={isStandaloneNow} />
-      <OfflineBanner />
+      <OfflineBanner connectionState={connectionState} />
       {/* تذكير مسح QR بعد ١٢ ساعة اتشال بناءً على طلب صريح - العميل ما
           لازم يشوف أي رسالة عن هيك. منطق حساب الزيارة الجديدة بعد ١٢
           ساعة (isValidQrVisit + VISIT_WINDOW_HOURS بالباك إند) ضل شغال
