@@ -50,6 +50,76 @@ self.addEventListener("push", (event) => {
   );
 });
 
+// --- Background Sync: إعادة محاولة رفع صور الوجبات يلي فشلت أوفلاين ---
+// (شوف src/utils/offlineUploadQueue.js بالفرونت إند - هوّ يلي بيخزّن
+// الصور هون بـIndexedDB وبيسجّل هاد الـtag). لازم نستخدم نفس اسم/بنية
+// القاعدة بالضبط هون عشان نقدر نقرأها من جوا الـService Worker.
+const OFFLINE_DB_NAME = "lotality-offline-queue";
+const OFFLINE_STORE_NAME = "pending-photo-uploads";
+const OFFLINE_SYNC_TAG = "lotality-sync-photo-uploads";
+
+function openOfflineDb() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(OFFLINE_DB_NAME, 1);
+    req.onupgradeneeded = () => {
+      req.result.createObjectStore(OFFLINE_STORE_NAME, { keyPath: "id", autoIncrement: true });
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function getAllPendingUploads(db) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(OFFLINE_STORE_NAME, "readonly");
+    const req = tx.objectStore(OFFLINE_STORE_NAME).getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function deletePendingUpload(db, id) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(OFFLINE_STORE_NAME, "readwrite");
+    tx.objectStore(OFFLINE_STORE_NAME).delete(id);
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function flushPendingUploads() {
+  const db = await openOfflineDb();
+  const pending = await getAllPendingUploads(db);
+
+  for (const item of pending) {
+    try {
+      const formData = new FormData();
+      const blob = new Blob([item.file.buffer], { type: item.file.type });
+      formData.append("image", blob, item.file.name);
+      formData.append("chatId", item.chatId);
+      if (item.tableNumber) formData.append("tableNumber", item.tableNumber);
+
+      const res = await fetch(item.endpoint, { method: "POST", body: formData });
+      // منمسحها من الطابور سواء نجحت (200) أو فشلت لسبب دائم (٤xx - مثلاً
+      // chatId غير صالح)، بس منتركها بالطابور لو فشل شبكة مؤقت (رح تتحاول
+      // تاني بمحاولة sync لاحقة تلقائياً من المتصفح)
+      if (res.ok || res.status < 500) {
+        await deletePendingUpload(db, item.id);
+      }
+    } catch {
+      // فشل شبكة (لسا أوفلاين فعلياً) - نسيبها بالطابور، المتصفح رح يعيد
+      // محاولة الـsync event تلقائياً بنفسه لاحقاً
+    }
+  }
+  db.close();
+}
+
+self.addEventListener("sync", (event) => {
+  if (event.tag === OFFLINE_SYNC_TAG) {
+    event.waitUntil(flushPendingUploads());
+  }
+});
+
 // ضغط على الإشعار - بيفتح/يركّز نافذة الشات الموجودة، أو يفتح وحدة جديدة
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();

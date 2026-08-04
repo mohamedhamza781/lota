@@ -4,6 +4,7 @@ import { io } from "socket.io-client";
 import { API_ORIGIN } from "../api/client";
 import { resolveImageUrl } from "../api/uploads";
 import { uploadWebChatMealPhoto, fetchWebChatAccount, fetchWebChatInfo, uploadWebChatAvatar, fetchVapidPublicKey, subscribeToPush } from "../api/webChat";
+import { queuePhotoForBackgroundSync } from "../utils/offlineUploadQueue";
 import PublicMenu from "./PublicMenu";
 
 // لوحة الألوان الافتراضية - بتُستخدم بس لو المنشأة لسا ما حدّدت لون خاص
@@ -2675,6 +2676,41 @@ export default function WebChat() {
     themeMeta.content = "#ffffff";
   }, [slug]);
 
+  // وسوم آيفون (Safari) الخاصة - manifest.json + display:"standalone" مش
+  // كافيين لوحدهم على iOS؛ سفاري بتتجاهلهم تماماً ولازم وسوم apple-* يدوية
+  // وإلا التطبيق بيفتح بشريط عنوان سفاري العادي حتى لو ضفته للشاشة الرئيسية
+  // (بعكس أندرويد/كروم يلي بياخذ display من الـmanifest مباشرة)
+  useEffect(() => {
+    function setMeta(name, content) {
+      let el = document.querySelector(`meta[name="${name}"]`);
+      if (!el) {
+        el = document.createElement("meta");
+        el.name = name;
+        document.head.appendChild(el);
+      }
+      el.content = content;
+    }
+
+    // yes = يفتح بدون أي شريط سفاري (شريط العنوان/الأدوات) لما يتفتح من
+    // أيقونة الشاشة الرئيسية - هاد أساس المطلب "بدون شريط العنوان" لآيفون
+    setMeta("apple-mobile-web-app-capable", "yes");
+    // default = شريط الحالة (الوقت/البطارية) شفاف فوق محتوى الصفحة
+    setMeta("apple-mobile-web-app-status-bar-style", "default");
+
+    const displayName = establishment?.establishmentName || earlyInfo?.name;
+    if (displayName) setMeta("apple-mobile-web-app-title", displayName);
+
+    const logo = resolveImageUrl(establishment?.establishmentLogo || earlyInfo?.logoUrl);
+    const iconHref = logo || `${API_ORIGIN}/api/web-chat/${slug}/fallback-icon.svg`;
+    let touchIcon = document.querySelector('link[rel="apple-touch-icon"]');
+    if (!touchIcon) {
+      touchIcon = document.createElement("link");
+      touchIcon.rel = "apple-touch-icon";
+      document.head.appendChild(touchIcon);
+    }
+    touchIcon.href = iconHref;
+  }, [slug, establishment?.establishmentName, establishment?.establishmentLogo, earlyInfo?.name, earlyInfo?.logoUrl]);
+
   // تسجيل الـService Worker مرة وحدة (شرط أساسي لـPWA + لازم له عشان
   // إشعارات Push تشتغل أصلاً)
   useEffect(() => {
@@ -2848,7 +2884,32 @@ export default function WebChat() {
     try {
       await uploadWebChatMealPhoto({ slug, file, chatId: chatIdRef.current });
     } catch (err) {
-      pushMessage({ from: "system", text: err.message || "تعذّر رفع الصورة، جرب مرة أخرى", at: new Date().toISOString() });
+      // "Failed to fetch" = فشل شبكة حقيقي (أوفلاين)، مش رفض من السيرفر
+      // (اللي عنده رسالة عربية واضحة من err.message أصلاً) - بهاي الحالة
+      // بس منستخدم Background Sync، لأنه ما في داعي نأجّل خطأ سيرفر حقيقي
+      // (مثلاً صورة كبيرة/نوع غير مدعوم) لمحاولة لاحقة رح تفشل بنفس الشكل
+      const isNetworkFailure = err instanceof TypeError;
+      if (isNetworkFailure) {
+        try {
+          const queued = await queuePhotoForBackgroundSync({
+            endpoint: `${API_ORIGIN}/api/web-chat/${slug}/photo`,
+            slug,
+            chatId: chatIdRef.current,
+            file,
+          });
+          pushMessage({
+            from: "system",
+            text: queued
+              ? "النت مقطوع مؤقتاً - رح تنرفع الصورة تلقائياً أول ما يرجع النت"
+              : "النت مقطوع، وما قدرنا نحفظ الصورة للمحاولة لاحقاً على هاد المتصفح - جرب ترفعها يدوياً بعد رجوع النت",
+            at: new Date().toISOString(),
+          });
+        } catch {
+          pushMessage({ from: "system", text: "تعذّر رفع الصورة، جرب مرة أخرى", at: new Date().toISOString() });
+        }
+      } else {
+        pushMessage({ from: "system", text: err.message || "تعذّر رفع الصورة، جرب مرة أخرى", at: new Date().toISOString() });
+      }
     } finally {
       setUploadingPhoto(false);
     }
@@ -3031,6 +3092,11 @@ export default function WebChat() {
         />
       ) : (
       <>
+      {/* غلاف position:relative محصور بحدود صندوق المحادثة بالضبط (مو
+          الشاشة كلها) - عشان زر "النزول للأسفل" (تحت) ينحسب من جواه هو،
+          مش من جوا حاوية الشاشة الكاملة زي ما كان قبل (كان بيطلع أحياناً
+          خارج/فوق حدود صندوق المحادثة تبعاً لطول الفوتر/التبويبات) */}
+      <div style={{ position: "relative", flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
       {/* ----------------- منطقة المحادثة ----------------- */}
       <main
         ref={chatContainerRef}
@@ -3176,15 +3242,17 @@ export default function WebChat() {
         <div ref={bottomRef} />
       </main>
 
-      {/* زر الانتقال السريع لأسفل */}
+      {/* زر الانتقال السريع لأسفل - جوا نفس الغلاف يلي لفينا فيه main
+          فوق، فـbottom/left هون محسوبين نسبةً لحدود صندوق المحادثة نفسه
+          بالضبط، مش الشاشة كلها */}
       {showScrollBtn && (
         <button
           onClick={() => scrollToBottom()}
           aria-label="النزول للأسفل"
           style={{
             position: "absolute",
-            bottom: 80,
-            left: 20,
+            bottom: 16,
+            left: 16,
             width: 36,
             height: 36,
             borderRadius: "50%",
@@ -3203,6 +3271,7 @@ export default function WebChat() {
           <ArrowDownIcon />
         </button>
       )}
+      </div>
 
       {/* ----------------- شريط الإدخال السفلي ----------------- */}
       <footer
