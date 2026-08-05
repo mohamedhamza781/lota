@@ -3500,25 +3500,25 @@ export default function WebChat() {
         </div>
       )}
       {isOfflineFallback && (
-        <div
-          style={{
-            position: "fixed",
-            top: "calc(env(safe-area-inset-top, 0px) + 8px)",
-            left: 12,
-            right: 12,
-            zIndex: 60,
-            textAlign: "center",
-            fontSize: 12.5,
-            fontWeight: 600,
-            color: "#fff",
-            background: "rgba(15, 23, 42, 0.88)",
-            backdropFilter: "blur(6px)",
-            borderRadius: 12,
-            padding: "8px 14px",
-          }}
-        >
-          أنت غير متصل حالياً — هاي آخر نسخة محفوظة من محادثتك. أي رسالة بترسلها هلق رح تنبعت تلقائياً أول ما يرجع النت.
-        </div>
+        // <div
+        //   style={{
+        //     position: "fixed",
+        //     top: "calc(env(safe-area-inset-top, 0px) + 8px)",
+        //     left: 12,
+        //     right: 12,
+        //     zIndex: 60,
+        //     textAlign: "center",
+        //     fontSize: 12.5,
+        //     fontWeight: 600,
+        //     color: "#fff",
+        //     background: "rgba(15, 23, 42, 0.88)",
+        //     backdropFilter: "blur(6px)",
+        //     borderRadius: 12,
+        //     padding: "8px 14px",
+        //   }}
+        // >
+        //   أنت غير متصل حالياً — هاي آخر نسخة محفوظة من محادثتك. أي رسالة بترسلها هلق رح تنبعت تلقائياً أول ما يرجع النت.
+        // </div>
       )}
       {/* تذكير مسح QR بعد ١٢ ساعة كان نص/بانر بالسابق واتشال بناءً على طلب
           صريح (كان مزعج). هلق بدله أيقونة صغيرة بالهيدر (QrRescanIcon) بس -
