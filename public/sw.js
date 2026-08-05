@@ -154,9 +154,36 @@ async function deletePendingUpload(db, id) {
   });
 }
 
+// بتحدّث عدد محاولات الرفع الفاشلة لعنصر معيّن (شوف MAX_UPLOAD_ATTEMPTS
+// تحت) - بدل ما نحاول للأبد بصمت لو فيه مشكلة دائمة (مش مجرد انقطاع نت
+// مؤقت)
+async function updatePendingUploadAttempts(db, id, attempts) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(OFFLINE_STORE_NAME, "readwrite");
+    const store = tx.objectStore(OFFLINE_STORE_NAME);
+    const req = store.get(id);
+    req.onsuccess = () => {
+      const record = req.result;
+      if (record) {
+        record.attempts = attempts;
+        store.put(record);
+      }
+    };
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+// بعد كم محاولة فاشلة (شبكة/سيرفر) نستسلم ونعتبرها فشلت نهائياً - بدل ما
+// نضل نحاول للأبد بصمت لو المشكلة مش مجرد انقطاع نت مؤقت (مثلاً مساحة
+// السيرفر ممتلئة، أو الصورة نفسها تالفة)
+const MAX_UPLOAD_ATTEMPTS = 5;
+
 async function flushPendingUploads() {
   const db = await openOfflineDb();
   const pending = await getAllPendingUploads(db);
+
+  let recoveredCount = 0; // كم عنصر كان أصلاً محفوظ (فشل قبل هيك) ونجح هلق - دليل "رجع النت"
 
   for (const item of pending) {
     try {
@@ -167,18 +194,61 @@ async function flushPendingUploads() {
       if (item.tableNumber) formData.append("tableNumber", item.tableNumber);
 
       const res = await fetch(item.endpoint, { method: "POST", body: formData });
-      // منمسحها من الطابور سواء نجحت (200) أو فشلت لسبب دائم (٤xx - مثلاً
-      // chatId غير صالح)، بس منتركها بالطابور لو فشل شبكة مؤقت (رح تتحاول
-      // تاني بمحاولة sync لاحقة تلقائياً من المتصفح)
-      if (res.ok || res.status < 500) {
+
+      if (res.ok) {
         await deletePendingUpload(db, item.id);
+        recoveredCount += 1;
+      } else if (res.status < 500) {
+        // فشل دائم (٤xx - مثلاً chatId غير صالح) - إعادة المحاولة ما رح
+        // تفيد أبداً، فمنشيلها ومنعلم العميل إنها ما وصلت بدل ما تختفي بصمت
+        await deletePendingUpload(db, item.id);
+        await self.registration.showNotification("تعذّر رفع صورة الوجبة", {
+          body: "في مشكلة بالصورة يلي بعتها - جرب ترسلها مرة ثانية من المحادثة",
+          icon: "/pwa-icon-192.png",
+          badge: "/pwa-icon-192.png",
+          dir: "rtl",
+          lang: "ar",
+          data: { url: "/" },
+        });
+      } else {
+        // خطأ سيرفر مؤقت (5xx) - منعاملها متل فشل الشبكة تحت (إعادة محاولة)
+        throw new Error("server_error");
       }
     } catch {
-      // فشل شبكة (لسا أوفلاين فعلياً) - نسيبها بالطابور، المتصفح رح يعيد
-      // محاولة الـsync event تلقائياً بنفسه لاحقاً
+      // فشل شبكة (لسا أوفلاين فعلياً) أو خطأ سيرفر مؤقت - منزوّد عداد
+      // المحاولات؛ لو تخطى الحد الأقصى، منستسلم ومنعلم العميل بدل ما
+      // نضل نحاول بصمت للأبد وهو مش عارف إنه في صورة عالقة
+      const attempts = (item.attempts || 0) + 1;
+      if (attempts >= MAX_UPLOAD_ATTEMPTS) {
+        await deletePendingUpload(db, item.id);
+        await self.registration.showNotification("تعذّر رفع صورة الوجبة", {
+          body: "حاولنا نرسلها كذا مرة بعد رجوع النت بدون نجاح - جرب ترسلها مرة ثانية من المحادثة",
+          icon: "/pwa-icon-192.png",
+          badge: "/pwa-icon-192.png",
+          dir: "rtl",
+          lang: "ar",
+          data: { url: "/" },
+        });
+      } else {
+        await updatePendingUploadAttempts(db, item.id, attempts);
+      }
     }
   }
   db.close();
+
+  // لو نجح إرسال شي كان عالق بالطابور، هاد دليل فعلي إنه النت رجع (مش
+  // مجرد محاولة sync عادية على نت شغال أصلاً) - منعلم العميل حتى لو
+  // التاب مسكّرة، عشان يرتاح إنه الصورة/الرسائل يلي كانت عالقة انبعتت
+  if (recoveredCount > 0) {
+    await self.registration.showNotification("عاد الاتصال بالإنترنت ✅", {
+      body: recoveredCount === 1 ? "تم إرسال الصورة يلي كانت محفوظة تلقائياً" : `تم إرسال ${recoveredCount} صور كانت محفوظة تلقائياً`,
+      icon: "/pwa-icon-192.png",
+      badge: "/pwa-icon-192.png",
+      dir: "rtl",
+      lang: "ar",
+      data: { url: "/" },
+    });
+  }
 }
 
 self.addEventListener("sync", (event) => {

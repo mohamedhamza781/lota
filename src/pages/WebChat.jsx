@@ -2714,12 +2714,36 @@ export default function WebChat() {
       const id = chatId || chatIdRef.current;
       if (!id) return;
       const list = loadOutbox(id);
+      if (!list.length) return; // ما كان في شي عالق أصلاً - ما في داعي نكمل
+      let recovered = 0;
       for (const entry of list) {
         const ok = await sendQueuedMessage(entry);
         if (!ok) break; // منحافظ على الترتيب - منوقف هون ومنكمل بمحاولة الفلاش الجاية
+        recovered += 1;
         const remaining = loadOutbox(id).filter((e) => e.clientMsgId !== entry.clientMsgId);
         saveOutboxList(id, remaining);
         setMessages((prev) => prev.map((m) => (m.clientMsgId === entry.clientMsgId ? { ...m, pending: false } : m)));
+      }
+
+      // لو فعلاً نجحنا نبعت رسالة كانت عالقة بالطابور، هاد دليل إنه صار
+      // انقطاع نت حقيقي وهلق رجع - منعلم العميل بإشعار نظام حقيقي (مش بس
+      // شريط داخل الصفحة، شوف OfflineBanner) حتى لو التاب بالخلفية، بنفس
+      // منطق تعافي طابور صور الوجبات بـsw.js
+      if (recovered > 0 && "serviceWorker" in navigator && Notification?.permission === "granted") {
+        try {
+          const registration = await navigator.serviceWorker.ready;
+          await registration.showNotification("عاد الاتصال بالإنترنت ✅", {
+            body: recovered === 1 ? "تم إرسال رسالتك يلي كانت محفوظة تلقائياً" : `تم إرسال ${recovered} رسائل كانت محفوظة تلقائياً`,
+            icon: "/pwa-icon-192.png",
+            badge: "/pwa-icon-192.png",
+            dir: "rtl",
+            lang: "ar",
+            data: { url: "/" },
+          });
+        } catch {
+          // تجاهل - أسوأ حالة العميل ما بيشوف إشعار الرجوع، بس الرسالة
+          // نفسها أصلاً انبعتت بنجاح فوق (الجزء الجوهري ضمن)
+        }
       }
     },
     [loadOutbox, saveOutboxList, sendQueuedMessage]

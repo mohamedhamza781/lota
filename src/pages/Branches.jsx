@@ -248,6 +248,11 @@ export default function Branches() {
   const [reminderMinutes, setReminderMinutes] = useState(
     () => getCached(`establishmentDetail:${establishmentId}`)?.botTimings?.stallReminderMinutes ?? 7
   );
+  // === عنوان إشعار Push التلقائي (رسالة جديدة/تذكير) - قابل للتخصيص بدل
+  // النص الثابت الافتراضي لكل المنشآت ===
+  const [notificationTitle, setNotificationTitle] = useState(
+    () => getCached(`establishmentDetail:${establishmentId}`)?.notificationSettings?.newMessageTitle || "عندك رسالة جديدة 🔔"
+  );
   const [reminderSaving, setReminderSaving] = useState(false);
   const [reminderSaved, setReminderSaved] = useState(false);
   const [reminderError, setReminderError] = useState("");
@@ -258,15 +263,23 @@ export default function Branches() {
       setReminderError("المدة لازم تكون رقم بين 1 و120 دقيقة");
       return;
     }
+    const title = notificationTitle.trim();
+    if (!title) {
+      setReminderError("عنوان الإشعار ما يمكن يكون فاضي");
+      return;
+    }
     setReminderSaving(true);
     setReminderSaved(false);
     setReminderError("");
     try {
-      await establishmentsApi.update(establishmentId, { botTimings: { stallReminderMinutes: minutes } });
+      await establishmentsApi.update(establishmentId, {
+        botTimings: { stallReminderMinutes: minutes },
+        notificationSettings: { newMessageTitle: title },
+      });
       setReminderSaved(true);
       setTimeout(() => setReminderSaved(false), 2500);
     } catch (err) {
-      setReminderError(err.message || "تعذّر حفظ مدة التذكير");
+      setReminderError(err.message || "تعذّر حفظ الإعدادات");
     } finally {
       setReminderSaving(false);
     }
@@ -305,6 +318,7 @@ export default function Branches() {
         setPromoCustomerIds((est.promoTextCustomerIds || []).map((id) => (typeof id === "string" ? id : id._id || id)));
         setDeliveryWhatsAppNumber(est.deliveryWhatsAppNumber || "");
         setReminderMinutes(est.botTimings?.stallReminderMinutes ?? 7);
+        setNotificationTitle(est.notificationSettings?.newMessageTitle || "عندك رسالة جديدة 🔔");
       })
       .catch(() => {});
   }, [establishmentId]);
@@ -956,32 +970,45 @@ export default function Branches() {
         </Stack>
       </Paper>
 
-      {/* مدة تذكير البوت - كم دقيقة يستنى قبل ما يعيد نفس السؤال لو
-          العميل ما رد (نفس المنطق لبوت الواتساب وشات الويب) */}
+      {/* مدة تذكير البوت + عنوان إشعار Push - كم دقيقة يستنى قبل ما يعيد
+          نفس السؤال لو العميل ما رد (نفس المنطق لبوت الواتساب وشات
+          الويب)، ونص الإشعار يلي بيوصل لجواله لو التاب مسكّرة */}
       <Paper elevation={0} sx={cardStyle}>
         <Stack spacing={2.5}>
           <Stack direction="row" spacing={1.2} alignItems="center">
             <AlarmRoundedIcon sx={{ color: tokens.muted }} />
             <Stack spacing={0.3}>
               <Typography sx={{ fontFamily: '"IBM Plex Sans Arabic"', fontWeight: 700, fontSize: "0.95rem" }}>
-                مدة تذكير البوت
+                إشعارات وتذكير البوت
               </Typography>
               <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                لو العميل وقف بمنتصف أي سؤال (واتساب أو شات الويب) ولا رد خلال هاي المدة، البوت بيعيد بعتله نفس السؤال تذكيراً - مع إشعار Push لتذكيره بالرد.
+                لو العميل وقف بمنتصف أي سؤال (واتساب أو شات الويب) ولا رد خلال هاي المدة، البوت بيعيد بعتله نفس السؤال تذكيراً - مع إشعار Push لتذكيره بالرد (لو التاب مسكّرة عنده).
               </Typography>
             </Stack>
           </Stack>
 
-          <TextField
-            label="عدد الدقايق"
-            type="number"
-            size="small"
-            fullWidth
-            value={reminderMinutes}
-            onChange={(e) => setReminderMinutes(e.target.value)}
-            inputProps={{ min: 1, max: 120 }}
-            sx={{ maxWidth: 220, "& .MuiOutlinedInput-root": { borderRadius: "12px" } }}
-          />
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+            <TextField
+              label="عدد دقايق التذكير"
+              type="number"
+              size="small"
+              value={reminderMinutes}
+              onChange={(e) => setReminderMinutes(e.target.value)}
+              inputProps={{ min: 1, max: 120 }}
+              sx={{ maxWidth: 220, "& .MuiOutlinedInput-root": { borderRadius: "12px" } }}
+            />
+            <TextField
+              label="عنوان إشعار الرسالة الجديدة"
+              size="small"
+              fullWidth
+              value={notificationTitle}
+              onChange={(e) => setNotificationTitle(e.target.value)}
+              placeholder="عندك رسالة جديدة 🔔"
+              inputProps={{ maxLength: 60 }}
+              helperText="بيظهر كعنوان إشعار الجوال (Push) لما يوصل رد من البوت والتاب مسكّرة"
+              sx={{ "& .MuiOutlinedInput-root": { borderRadius: "12px" } }}
+            />
+          </Stack>
 
           {reminderError && (
             <Typography variant="caption" sx={{ color: "error.main", fontWeight: 600 }}>
@@ -1004,7 +1031,7 @@ export default function Branches() {
                 "&:hover": { backgroundColor: tokens.inkSoft || tokens.ink },
               }}
             >
-              {reminderSaving ? "جاري الحفظ…" : "حفظ مدة التذكير"}
+              {reminderSaving ? "جاري الحفظ…" : "حفظ الإعدادات"}
             </Button>
             {reminderSaved && (
               <Typography variant="caption" sx={{ color: "success.main", fontWeight: 700 }}>

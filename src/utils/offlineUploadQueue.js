@@ -37,7 +37,7 @@ export async function queuePhotoForBackgroundSync({ endpoint, slug, chatId, tabl
   const record = await fileToRecord(file);
   await new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, "readwrite");
-    tx.objectStore(STORE_NAME).add({ endpoint, slug, chatId, tableNumber, file: record, createdAt: Date.now() });
+    tx.objectStore(STORE_NAME).add({ endpoint, slug, chatId, tableNumber, file: record, attempts: 0, createdAt: Date.now() });
     tx.oncomplete = resolve;
     tx.onerror = () => reject(tx.error);
   });
