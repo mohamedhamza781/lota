@@ -3984,12 +3984,12 @@ export default function WebChat() {
         }}
       >
         {[
-          { key: "home", label: "الرئيسية", icon: <HomeIcon /> },
-          { key: "chat", label: "الرسائل", icon: <ChatIcon /> },
-          { key: "menu", label: "المنيو", icon: <MenuIcon /> },
-          { key: "coupons", label: "الهدايا", icon: <TicketIcon /> },
-          { key: "account", label: "حسابي", icon: <PersonIcon /> },
-          { key: "about", label: "ديلفري", icon: <DeliveryIcon /> },
+          { key: "home", label: "الرئيسية", icon: <HomeIcon fontSize="medium" /> },
+  { key: "chat", label: "الرسائل", icon: <ChatIcon fontSize="medium" /> },
+  { key: "menu", label: "المنيو", icon: <MenuIcon fontSize="medium" /> },
+  { key: "coupons", label: "الهدايا", icon: <TicketIcon fontSize="medium" /> },
+  { key: "account", label: "حسابي", icon: <PersonIcon fontSize="medium" /> },
+  { key: "about", label: "ديلفري", icon: <DeliveryIcon fontSize="medium" /> },
         ].map((tab) => (
           <button
             key={tab.key}
