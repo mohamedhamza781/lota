@@ -3051,25 +3051,22 @@ export default function WebChat() {
     };
   }, [slug, storageKey, pushMessage, screen, viaQr, referralCode]);
 
-  // نفس شرط "عدّت نافذة الزيارة" يلي الباك إند بيتحقق منه (VISIT_WINDOW_HOURS
-  // بـwhatsapp.service.js، ١٢ ساعة افتراضياً) - بس هون بس عشان نقرر نوري
-  // الأيقونة ولا لأ، مش قرار نهائي (القرار الحقيقي دايماً بالسيرفر)
+  // أيقونة QR دائماً ظاهرة لأي عميل مسجّل (عنده chatId) في شاشة الشات -
+  // الغرض: احتساب الزيارات اللاحقة بعد أول تسجيل. القرار الفعلي لصحة
+  // الزيارة (هل مسح QR حقيقي قريب من الفرع وعدّت النافذة الزمنية؟)
+  // يبقى بالباك إند (isValidQrVisit بـwhatsapp.service.js) - الأيقونة
+  // هون بس واجهة للوصول لماسح QR، مش قرار قبول/رفض الزيارة.
   const showQrRescanIcon = useMemo(() => {
-    if (screen !== "chat" || !chatId) return false;
-    try {
-      const lastScan = Number(localStorage.getItem(lastQrScanKey)) || 0;
-      if (!lastScan) return false; // ما عنا مرجعية وقت حقيقية - ما منظهر الأيقونة
-      return Date.now() - lastScan >= QR_REMINDER_WINDOW_MS;
-    } catch {
-      return false;
-    }
+    return screen === "chat" && Boolean(chatId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [screen, chatId, lastQrScanKey, qrIconTick]);
+  }, [screen, chatId]);
 
   // بينفّذ لما مسح QR جوا الشات (InChatQrScanner) ينجح ويتحقق إنه فعلاً
   // كود هاد المحل - منبعت trigger زيارة جديدة عبر نفس الـsocket المفتوح
   // أصلاً (بدون أي reload)، بالظبط متل أول اتصال، بس هلق مع viaQr:true
-  // طازة عشان isValidQrVisit بالباك إند يقبلها كزيارة حقيقية جديدة
+  // طازة عشان isValidQrVisit بالباك إند يقبلها كزيارة حقيقية جديدة.
+  // الأيقونة بتضل ظاهرة بعد المسح (لا نخفيها) لأنه العميل ممكن يزور
+  // أكتر من مرة بنفس اليوم أو لاحقاً ويحتاج يمسح تاني.
   function handleQrRescanSuccess() {
     setShowQrScanner(false);
     try {
@@ -3077,7 +3074,7 @@ export default function WebChat() {
     } catch {
       // تجاهل
     }
-    setQrIconTick((t) => t + 1); // يخفي الأيقونة فوراً لحد ما تعدي ١٢ ساعة تانية
+    // الأيقونة بتضل ظاهرة (ما منخفيها) - العميل قد يحتاج يمسح مرة تانية
 
     const emitVisitTrigger = (geo) => {
       socketRef.current?.emit("client_message", { text: "•", silent: true, geo, viaQr: true });
@@ -3500,25 +3497,25 @@ export default function WebChat() {
         </div>
       )}
       {isOfflineFallback && (
-        // <div
-        //   style={{
-        //     position: "fixed",
-        //     top: "calc(env(safe-area-inset-top, 0px) + 8px)",
-        //     left: 12,
-        //     right: 12,
-        //     zIndex: 60,
-        //     textAlign: "center",
-        //     fontSize: 12.5,
-        //     fontWeight: 600,
-        //     color: "#fff",
-        //     background: "rgba(15, 23, 42, 0.88)",
-        //     backdropFilter: "blur(6px)",
-        //     borderRadius: 12,
-        //     padding: "8px 14px",
-        //   }}
-        // >
-        //   أنت غير متصل حالياً — هاي آخر نسخة محفوظة من محادثتك. أي رسالة بترسلها هلق رح تنبعت تلقائياً أول ما يرجع النت.
-        // </div>
+        <div
+          style={{
+            position: "fixed",
+            top: "calc(env(safe-area-inset-top, 0px) + 8px)",
+            left: 12,
+            right: 12,
+            zIndex: 60,
+            textAlign: "center",
+            fontSize: 12.5,
+            fontWeight: 600,
+            color: "#fff",
+            background: "rgba(15, 23, 42, 0.88)",
+            backdropFilter: "blur(6px)",
+            borderRadius: 12,
+            padding: "8px 14px",
+          }}
+        >
+          أنت غير متصل حالياً — هاي آخر نسخة محفوظة من محادثتك. أي رسالة بترسلها هلق رح تنبعت تلقائياً أول ما يرجع النت.
+        </div>
       )}
       {/* تذكير مسح QR بعد ١٢ ساعة كان نص/بانر بالسابق واتشال بناءً على طلب
           صريح (كان مزعج). هلق بدله أيقونة صغيرة بالهيدر (QrRescanIcon) بس -
