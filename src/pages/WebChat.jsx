@@ -1,3 +1,4 @@
+import QrCodeScannerIcon from "@mui/icons-material/QrCodeScanner";
 import { createContext, useContext, useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { io } from "socket.io-client";
@@ -3868,7 +3869,7 @@ export default function WebChat() {
                 gap: 7,
               }}
             >
-              📷 امسح QR الآن
+              <QrCodeScannerIcon style={{ fontSize: 18 }} /> امسح QR الآن
             </button>
           </div>
         ) : (
@@ -3877,7 +3878,6 @@ export default function WebChat() {
             ref={fileInputRef}
             type="file"
             accept="image/*"
-            capture="environment"
             onChange={handlePhotoSelected}
             style={{ display: "none" }}
           />
