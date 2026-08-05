@@ -7,15 +7,6 @@ import { uploadWebChatMealPhoto, fetchWebChatAccount, fetchWebChatInfo, uploadWe
 import { queuePhotoForBackgroundSync } from "../utils/offlineUploadQueue";
 import PublicMenu from "./PublicMenu";
 
-// استرجاع chatId برقم الهاتف - لحالة PWA على iOS حيث localStorage منفصل عن المتصفح
-async function recoverAccountByPhone(slug, phone) {
-  const clean = phone.trim().replace(/[^\d+]/g, "");
-  const res = await fetch(`${API_ORIGIN}/api/web-chat/${slug}/recover?phone=${encodeURIComponent(clean)}`);
-  const json = await res.json();
-  if (!res.ok || !json?.data?.found) return null;
-  return json.data.chatId || null;
-}
-
 // لوحة الألوان الافتراضية - بتُستخدم بس لو المنشأة لسا ما حدّدت لون خاص
 // فيها (menuPrimaryColor فاضي)، أو لحد ما يوصل لون المنشأة الفعلي من
 // الباك إند. أي منشأة حدّدت لونها الخاص (من نفس منتقي اللون الموجود
@@ -1605,6 +1596,28 @@ function WelcomeScreen({ slug, onSubmit, installBannerProps, logoUrl: earlyLogoU
                 }}
               />
 
+              {/* بادج "تطوير Kajo" - رفعناها لفوق البطاقة (نفس تعديل شاشة
+                  "أهلاً بكم" الأخرى) عشان تكون واضحة وظاهرة بدل ما تضيع
+                  بسطر باهت آخر الشاشة */}
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "5px 12px",
+                  borderRadius: 999,
+                  background: `${THEME.headerBg || "#64748B"}12`,
+                  border: `1px solid ${THEME.headerBg || "#64748B"}30`,
+                  color: THEME.headerBg || "#64748B",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  marginBottom: 14,
+                  letterSpacing: "-0.01em",
+                }}
+              >
+                تطوير Kajo © {CURRENT_YEAR}
+              </div>
+
               {/* الشعار */}
               <div
                 style={{
@@ -1807,10 +1820,6 @@ function WelcomeScreen({ slug, onSubmit, installBannerProps, logoUrl: earlyLogoU
                   <div style={{ fontSize: 9.5, color: THEME.textSecondary || "#64748B" }}>{f.text}</div>
                 </div>
               ))}
-            </div>
-
-            <div style={{ textAlign: "center", fontSize: 10, color: THEME.textSecondary || "#94A3B8", opacity: 0.6, padding: "4px 0 2px" }}>
-              تطوير Kajo © {CURRENT_YEAR}
             </div>
 
           </div>
@@ -2075,7 +2084,7 @@ function OfflineBanner({ connectionState }) {
     <div
       style={{
         position: "fixed",
-        bottom: "calc(100px + env(safe-area-inset-bottom, 0px))",
+        bottom: "calc(64px + env(safe-area-inset-bottom, 0px))",
         left: 12,
         right: 12,
         zIndex: 60,
@@ -2101,7 +2110,7 @@ function OfflineBanner({ connectionState }) {
 // الكومنت جوا شاشة الشات) بتظهر بس لو عدّى ١٢ ساعة (نفس VISIT_WINDOW_HOURS
 // المستخدمة بالباك إند) من آخر مسح QR فعلي، وبتفتح ماسح QR داخل نفس
 // الصفحة (InChatQrScanner تحت) بدل ما يطلع العميل من التطبيق أصلاً
-const QR_REMINDER_WINDOW_MS = 12 * 60 * 60 * 1000;
+const QR_REMINDER_WINDOW_MS = 3 * 60 * 1000; // ⚠️ مؤقت للتجربة - رجّعها لـ 12 * 60 * 60 * 1000 بعد ما تخلص
 
 function QrRescanIcon({ visible, onClick }) {
   if (!visible) return null;
@@ -2167,15 +2176,13 @@ function InChatQrScanner({ slug, onSuccess, onClose }) {
             let isValid = false;
             try {
               const url = new URL(decodedText);
-              // بنتحقق بس إنه الرابط تبع نفس هاد المحل - مش مهم يكون فيه ?src=qr
-              // لأنه العميل هو اللي فتح الماسح بنفسه، هاد كافي تأكيد إنه مسح فعلي
-              isValid = url.pathname === `/chat/${slug}`;
+              isValid = url.pathname === `/chat/${slug}` && url.searchParams.get("src") === "qr";
             } catch {
               isValid = false;
             }
 
             if (!isValid) {
-              setErrorText("هاد مش QR الخاص بهاد المحل - وجّه الكاميرا على الكود الموجود بالمحل مباشرة");
+              setErrorText("هاد مش كود QR الخاص فينا - جرب تمسح الكود الموجود بالمحل مباشرة");
               return;
             }
 
@@ -2321,6 +2328,27 @@ function IntroScreen({ name, establishmentName, logoUrl, onContinue, installBann
             animation: "fadeScaleIn 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
           }}
         >
+          {/* بادج "تطوير Kajo" - رفعناها لفوق البطاقة (قبل كانت سطر صغير
+              باهت بآخر الشاشة، ممكن يضيع تحت السكرول) عشان تكون واضحة
+              وظاهرة أول ما تفتح شاشة "أهلاً بكم" */}
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "5px 12px",
+              borderRadius: 999,
+              background: `${darkGreen}12`,
+              border: `1px solid ${darkGreen}30`,
+              color: darkGreen,
+              fontSize: 12,
+              fontWeight: 700,
+              marginBottom: 14,
+              letterSpacing: "-0.01em",
+            }}
+          >
+            تطوير Kajo © {CURRENT_YEAR}
+          </div>
           <div
             style={{
               width: 72,
@@ -2413,10 +2441,6 @@ function IntroScreen({ name, establishmentName, logoUrl, onContinue, installBann
           >
             يلا نبدأ
           </button>
-        </div>
-
-        <div style={{ textAlign: "center", fontSize: 10, color: THEME.textSecondary || "#94A3B8", opacity: 0.6, padding: "10px 0 2px", width: "100%", maxWidth: 380 }}>
-          تطوير Kajo © {CURRENT_YEAR}
         </div>
       </div>
 
@@ -2579,19 +2603,8 @@ export default function WebChat() {
   // محدّد) صاير بالباك إند (isValidQrVisit بـwhatsapp.service.js) -
   // لو مش صحيح، البوت برد جوا نفس المحادثة "لازم تمسح QR..." بدل ما
   // نمنعه من الوصول لفورم التسجيل من الأساس.
-  // الشاشة الافتراضية: لو عنده chatId محفوظ من قبل → مباشرة للشات.
-  // لو PWA standalone ولا chatId → شاشة استرجاع خفيفة (برقم الهاتف)
-  // بدل فورم التسجيل الكامل - سبب: iOS يعزل localStorage بين
-  // المتصفح والتطبيق المثبّت (standalone)، عكس أندرويد اللي بيشاركهم.
-  const isStandaloneInit = Boolean(
-    window.matchMedia?.("(display-mode: standalone)")?.matches || window.navigator.standalone
-  );
   const [screen, setScreen] = useState(() => {
-    try {
-      if (localStorage.getItem(storageKey)) return "chat";
-    } catch { /* تجاهل */ }
-    // PWA standalone بدون chatId → شاشة استرجاع
-    if (isStandaloneInit) return "recovering";
+    if (localStorage.getItem(storageKey)) return "chat";
     return "welcome";
   });
   const [deliveryWhatsAppNumber, setDeliveryWhatsAppNumber] = useState("");
@@ -2871,20 +2884,11 @@ export default function WebChat() {
   // الحقيقية من السيرفر تلقائياً، شوف "joined" تحت)
   useEffect(() => {
     if (screen !== "chat" && screen !== "registering") return;
-    if (connectionState === "connected") return; // متصل فعلياً - ولا داعي لأي نسخة محلية
     const savedChatId = localStorage.getItem(storageKey);
     if (!savedChatId) return; // زائر جديد كلياً - ما في نسخة محفوظة أصلاً لنعرضها
 
-    // ⚠️ ما منعتبرها "أوفلاين" لمجرد إنه لسا "عم يحاول يتصل" (connecting) -
-    // هاي حالة طبيعية أول ما تفتح الصفحة وممكن تاخذ كذا ثانية حتى مع نت
-    // ممتاز (سيرفر بطيء يرد أول مرة مثلاً)، مش دليل انقطاع نت حقيقي. لازم
-    // دليل فعلي: إما المتصفح نفسه بيأكد إنه ما في نت (navigator.onLine)،
-    // أو صار خطأ اتصال صريح (join_error/error) - وقتها بس منعتمد النسخة
-    // المحلية، بعد مهلة قصيرة لتجنب الفلاش على انقطاع لحظي بيصلح لحاله
-    const hasRealOfflineEvidence = !navigator.onLine || connectionState === "error";
-    if (!hasRealOfflineEvidence) return;
-
     const timer = setTimeout(() => {
+      if (connectionState === "connected") return; // اتصل بنجاح قبل ما تخلص المهلة - ولا داعي للنسخة المحلية
       try {
         const cached = localStorage.getItem(HISTORY_CACHE_PREFIX + savedChatId);
         if (cached) {
@@ -2900,10 +2904,11 @@ export default function WebChat() {
       } catch {
         // تجاهل - أسوأ حالة يضل العميل بشاشة الاتصال العادية
       }
-    }, 3000);
+    }, 6000);
 
     return () => clearTimeout(timer);
-  }, [screen, connectionState, storageKey]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen]);
 
   useEffect(() => {
     if (screen !== "chat" && screen !== "registering") return; // لسا بشاشة الترحيب - ما في داعي نفتح اتصال
@@ -3073,22 +3078,25 @@ export default function WebChat() {
     };
   }, [slug, storageKey, pushMessage, screen, viaQr, referralCode]);
 
-  // أيقونة QR دائماً ظاهرة لأي عميل مسجّل (عنده chatId) في شاشة الشات -
-  // الغرض: احتساب الزيارات اللاحقة بعد أول تسجيل. القرار الفعلي لصحة
-  // الزيارة (هل مسح QR حقيقي قريب من الفرع وعدّت النافذة الزمنية؟)
-  // يبقى بالباك إند (isValidQrVisit بـwhatsapp.service.js) - الأيقونة
-  // هون بس واجهة للوصول لماسح QR، مش قرار قبول/رفض الزيارة.
+  // نفس شرط "عدّت نافذة الزيارة" يلي الباك إند بيتحقق منه (VISIT_WINDOW_HOURS
+  // بـwhatsapp.service.js، ١٢ ساعة افتراضياً) - بس هون بس عشان نقرر نوري
+  // الأيقونة ولا لأ، مش قرار نهائي (القرار الحقيقي دايماً بالسيرفر)
   const showQrRescanIcon = useMemo(() => {
-    return screen === "chat" && Boolean(chatId);
+    if (screen !== "chat" || !chatId) return false;
+    try {
+      const lastScan = Number(localStorage.getItem(lastQrScanKey)) || 0;
+      if (!lastScan) return false; // ما عنا مرجعية وقت حقيقية - ما منظهر الأيقونة
+      return Date.now() - lastScan >= QR_REMINDER_WINDOW_MS;
+    } catch {
+      return false;
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [screen, chatId]);
+  }, [screen, chatId, lastQrScanKey, qrIconTick]);
 
   // بينفّذ لما مسح QR جوا الشات (InChatQrScanner) ينجح ويتحقق إنه فعلاً
   // كود هاد المحل - منبعت trigger زيارة جديدة عبر نفس الـsocket المفتوح
   // أصلاً (بدون أي reload)، بالظبط متل أول اتصال، بس هلق مع viaQr:true
-  // طازة عشان isValidQrVisit بالباك إند يقبلها كزيارة حقيقية جديدة.
-  // الأيقونة بتضل ظاهرة بعد المسح (لا نخفيها) لأنه العميل ممكن يزور
-  // أكتر من مرة بنفس اليوم أو لاحقاً ويحتاج يمسح تاني.
+  // طازة عشان isValidQrVisit بالباك إند يقبلها كزيارة حقيقية جديدة
   function handleQrRescanSuccess() {
     setShowQrScanner(false);
     try {
@@ -3096,7 +3104,7 @@ export default function WebChat() {
     } catch {
       // تجاهل
     }
-    // الأيقونة بتضل ظاهرة (ما منخفيها) - العميل قد يحتاج يمسح مرة تانية
+    setQrIconTick((t) => t + 1); // يخفي الأيقونة فوراً لحد ما تعدي ١٢ ساعة تانية
 
     const emitVisitTrigger = (geo) => {
       socketRef.current?.emit("client_message", { text: "•", silent: true, geo, viaQr: true });
@@ -3438,24 +3446,6 @@ export default function WebChat() {
           logoUrl={establishment?.establishmentLogo || earlyInfo?.logoUrl}
           establishmentName={establishment?.establishmentName || earlyInfo?.name}
           externalError={registrationError}
-        />
-      </ThemeContext.Provider>
-    );
-  }
-
-  if (screen === "recovering") {
-    return (
-      <ThemeContext.Provider value={THEME}>
-        <AccountRecoveryScreen
-          slug={slug}
-          storageKey={storageKey}
-          logoUrl={establishment?.establishmentLogo || earlyInfo?.logoUrl}
-          establishmentName={establishment?.establishmentName || earlyInfo?.name}
-          onRecovered={(chatId) => {
-            try { localStorage.setItem(storageKey, chatId); } catch { /* تجاهل */ }
-            setScreen("chat");
-          }}
-          onNewUser={() => setScreen("welcome")}
         />
       </ThemeContext.Provider>
     );
@@ -3881,6 +3871,7 @@ export default function WebChat() {
             ref={fileInputRef}
             type="file"
             accept="image/*"
+            capture="environment"
             onChange={handlePhotoSelected}
             style={{ display: "none" }}
           />
