@@ -2158,7 +2158,7 @@ function InChatQrScanner({ slug, onSuccess, onClose }) {
             let isValid = false;
             try {
               const url = new URL(decodedText);
-              isValid = (url.pathname === `/chat/${slug}` || url.pathname.endsWith(`/chat/${slug}`)) && url.searchParams.get("src") === "qr";
+              isValid = url.pathname.includes("/chat/") && url.searchParams.get("src") === "qr";
             } catch {
               isValid = false;
             }
@@ -2932,6 +2932,7 @@ export default function WebChat() {
       setEstablishment(data);
       setConnectionState("connected");
       setIsOfflineFallback(false);
+      if (data.chatLocked && chatIdRef.current) saveOutboxList(chatIdRef.current, []);
       setChatLocked(Boolean(data.chatLocked));
 
       // بيرجع المحادثة السابقة كاملة من الباك إند (لو عميل راجع بنفس
@@ -2992,6 +2993,7 @@ export default function WebChat() {
       // جديدة عشان نعرف)
       if (typeof data.text === "string" && data.text.includes("انتهت زيارتك بنجاح")) {
         setChatLocked(true);
+        if (chatIdRef.current) saveOutboxList(chatIdRef.current, []); // مسح الطابور عند انتهاء الزيارة
       }
 
       // لو كنا بمنتصف محاولة تسجيل (شاشة "جاري إنشاء حسابك...") ووصل رد
@@ -3347,7 +3349,7 @@ export default function WebChat() {
 
   function handleSend() {
     const text = draft.trim();
-    if (!text || !chatIdRef.current) return;
+    if (!text || !chatIdRef.current || chatLocked) return;
     const clientMsgId =
       typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
     const at = new Date().toISOString();
@@ -3925,15 +3927,15 @@ export default function WebChat() {
                   handleSend();
                 }
               }}
-              placeholder={connectionState === "connected" ? "اكتب رسالتك..." : "بانتظار الاتصال..."}
-              disabled={connectionState !== "connected"}
+              placeholder={chatLocked ? "انتهت المحادثة - امسح QR لزيارة جديدة" : connectionState === "connected" ? "اكتب رسالتك..." : "بانتظار الاتصال..."}
+              disabled={connectionState !== "connected" || chatLocked}
               rows={1}
               style={{
                 width: "100%",
                 border: "none",
                 outline: "none",
                 background: "transparent",
-                fontSize: 14.5,
+                fontSize: 16,
                 fontFamily: "inherit",
                 resize: "none",
                 maxHeight: 100,
@@ -3945,7 +3947,7 @@ export default function WebChat() {
 
           <button
             onClick={handleSend}
-            disabled={connectionState !== "connected" || !draft.trim()}
+            disabled={connectionState !== "connected" || !draft.trim() || chatLocked}
             aria-label="إرسال"
             style={{
               width: 44,
