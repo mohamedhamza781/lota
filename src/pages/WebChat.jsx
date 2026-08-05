@@ -3841,7 +3841,6 @@ export default function WebChat() {
             ref={fileInputRef}
             type="file"
             accept="image/*"
-            capture="environment"
             onChange={handlePhotoSelected}
             style={{ display: "none" }}
           />
