@@ -161,6 +161,17 @@ function CheckDoubleIcon({ color }) {
   );
 }
 
+// أيقونة ساعة صغيرة - بتبين على فقاعة رسالة العميل لسا ما توصلت السيرفر
+// فعلياً (بعتها بس النت مقطوع/عم يحاول)، بدل علامة الصح المزدوجة العادية
+function PendingClockIcon({ color }) {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9" />
+      <polyline points="12 7 12 12 15.5 14" />
+    </svg>
+  );
+}
+
 function ArrowDownIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -1512,6 +1523,28 @@ function WelcomeScreen({ slug, onSubmit, installBannerProps, logoUrl: earlyLogoU
                 }}
               />
 
+              {/* بادج "تطوير Kajo" - رفعناها لفوق البطاقة (نفس تعديل شاشة
+                  "أهلاً بكم" الأخرى) عشان تكون واضحة وظاهرة بدل ما تضيع
+                  بسطر باهت آخر الشاشة */}
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "5px 12px",
+                  borderRadius: 999,
+                  background: `${THEME.headerBg || "#64748B"}12`,
+                  border: `1px solid ${THEME.headerBg || "#64748B"}30`,
+                  color: THEME.headerBg || "#64748B",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  marginBottom: 14,
+                  letterSpacing: "-0.01em",
+                }}
+              >
+                تطوير Kajo © {CURRENT_YEAR}
+              </div>
+
               {/* الشعار */}
               <div
                 style={{
@@ -1718,21 +1751,6 @@ function WelcomeScreen({ slug, onSubmit, installBannerProps, logoUrl: earlyLogoU
 
           </div>
         )}
-      </div>
-
-      {/* الفوتر - رفعته شوي لفوق (مسافة أكبر عن حافة الشاشة السفلية) */}
-      <div
-        style={{
-          textAlign: "center",
-          marginBottom: 18,
-          fontSize: 11,
-          fontWeight: 600,
-          color: THEME.textSecondary || "#64748B",
-          opacity: 0.8,
-          flexShrink: 0,
-        }}
-      >
-        تطوير Kajo — © {CURRENT_YEAR} جميع الحقوق محفوظة
       </div>
 
       <style>{`
@@ -2237,6 +2255,27 @@ function IntroScreen({ name, establishmentName, logoUrl, onContinue, installBann
             animation: "fadeScaleIn 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
           }}
         >
+          {/* بادج "تطوير Kajo" - رفعناها لفوق البطاقة (قبل كانت سطر صغير
+              باهت بآخر الشاشة، ممكن يضيع تحت السكرول) عشان تكون واضحة
+              وظاهرة أول ما تفتح شاشة "أهلاً بكم" */}
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "5px 12px",
+              borderRadius: 999,
+              background: `${darkGreen}12`,
+              border: `1px solid ${darkGreen}30`,
+              color: darkGreen,
+              fontSize: 12,
+              fontWeight: 700,
+              marginBottom: 14,
+              letterSpacing: "-0.01em",
+            }}
+          >
+            تطوير Kajo © {CURRENT_YEAR}
+          </div>
           <div
             style={{
               width: 72,
@@ -2332,9 +2371,6 @@ function IntroScreen({ name, establishmentName, logoUrl, onContinue, installBann
         </div>
       </div>
 
-      <div style={{ textAlign: "center", marginBottom: 14, fontSize: 11, fontWeight: 600, color: THEME.textSecondary || "#64748B", opacity: 0.8, flexShrink: 0 }}>
-        تطوير Kajo — © {CURRENT_YEAR} جميع الحقوق محفوظة
-      </div>
       <style>{`
         ${SCROLLBAR_HIDE_CSS}
         @keyframes fadeScaleIn {
@@ -2610,6 +2646,85 @@ export default function WebChat() {
     setMessages((prev) => [...prev, { id: `${Date.now()}-${Math.random()}`, ...msg }]);
   }, []);
 
+  // ============ Outbox محلي لرسائل النص ============
+  // نفس فكرة offlineUploadQueue.js بس لرسائل النص بدل صور الوجبات: أي
+  // رسالة عم نبعتها منخزّنها فوراً بـlocalStorage (مفتاح خاص بكل chatId)
+  // *قبل* حتى ما نحاول نبعتها، ومنشيلها من هناك بس لما نتأكد فعلياً إنها
+  // وصلت السيرفر وانحفظت (ack حقيقي من الباك إند، مش مجرد "استلمها
+  // Socket.io"). هيك لو انقطع النت أو اتسكرت التاب قبل ما توصل، الرسالة
+  // تضل محفوظة فعلياً وبتنبعت تلقائياً أول ما نرجع نتصل - بدل ما تعتمد
+  // بس على تخزين Socket.io المؤقت بالذاكرة (RAM) اللي بيضيع لو سكّرت
+  // التاب أو عملت ريفرش وانت أوفلاين.
+  const OUTBOX_PREFIX = "webchat_outbox:";
+
+  const loadOutbox = useCallback((chatId) => {
+    if (!chatId) return [];
+    try {
+      const raw = localStorage.getItem(OUTBOX_PREFIX + chatId);
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  }, []);
+
+  const saveOutboxList = useCallback((chatId, list) => {
+    if (!chatId) return;
+    try {
+      if (list.length) localStorage.setItem(OUTBOX_PREFIX + chatId, JSON.stringify(list));
+      else localStorage.removeItem(OUTBOX_PREFIX + chatId);
+    } catch {
+      // تجاهل - أسوأ حالة منفقد ضمان الإرسال التلقائي بس، الرسالة لسا
+      // ظاهرة بالواجهة (بحالة pending) والعميل يقدر يعيد فتح الصفحة لاحقاً
+    }
+  }, []);
+
+  // بتبعت رسالة وحدة من الـoutbox عبر الـsocket وبتستنى تأكيد (ack) حقيقي
+  // من الباك إند إنه انحفظت (شوف client_message بـwebChat.service.js) -
+  // بمهلة قصوى 6 ثواني، وإلا نعتبرها فشلت ونسيبها بالـoutbox لمحاولة
+  // لاحقة بدل ما نعلّق بانتظارها للأبد
+  const sendQueuedMessage = useCallback((entry) => {
+    return new Promise((resolve) => {
+      const socket = socketRef.current;
+      if (!socket || !socket.connected) {
+        resolve(false);
+        return;
+      }
+      let settled = false;
+      const timer = setTimeout(() => {
+        if (!settled) {
+          settled = true;
+          resolve(false);
+        }
+      }, 6000);
+      socket.emit("client_message", { text: entry.text, clientMsgId: entry.clientMsgId, geo: geoRef.current }, (ack) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        resolve(Boolean(ack && ack.ok));
+      });
+    });
+  }, []);
+
+  // بتحاول تفضّي كل الرسائل المتراكمة بالـoutbox بالترتيب (وحدة وحدة) -
+  // بتتنادى أول ما نتصل/نرجع نتصل بنجاح (شوف "joined" تحت)، عشان أي
+  // رسالة كانت عالقة وقت انقطاع النت تنبعت تلقائياً بدون ما العميل
+  // يحتاج يعمل أي شي أو حتى ينتبه إنه صار انقطاع أصلاً
+  const flushOutbox = useCallback(
+    async (chatId) => {
+      const id = chatId || chatIdRef.current;
+      if (!id) return;
+      const list = loadOutbox(id);
+      for (const entry of list) {
+        const ok = await sendQueuedMessage(entry);
+        if (!ok) break; // منحافظ على الترتيب - منوقف هون ومنكمل بمحاولة الفلاش الجاية
+        const remaining = loadOutbox(id).filter((e) => e.clientMsgId !== entry.clientMsgId);
+        saveOutboxList(id, remaining);
+        setMessages((prev) => prev.map((m) => (m.clientMsgId === entry.clientMsgId ? { ...m, pending: false } : m)));
+      }
+    },
+    [loadOutbox, saveOutboxList, sendQueuedMessage]
+  );
+
   useEffect(() => {
     if (screen !== "chat" && screen !== "registering") return; // لسا بشاشة الترحيب - ما في داعي نفتح اتصال
 
@@ -2652,8 +2767,22 @@ export default function WebChat() {
       // الـchatId) - هيك المحادثة بتضل موجودة حتى لو عمل ريفرش للصفحة،
       // بدل ما تنمسح وتبلش فاضية من جديد كل مرة
       if (Array.isArray(data.history)) {
-        setMessages(data.history.map((m) => ({ id: m.id, from: m.from, text: m.text, at: m.at })));
+        const historyMessages = data.history.map((m) => ({ id: m.id, from: m.from, text: m.text, at: m.at }));
+        // أي رسالة لسا بالـoutbox (اتبعتت بس ما توصل تأكيد إنها انحفظت -
+        // مثلاً اتسكرت التاب والنت مقطوع) ما رح تكون جوا history (لأنها
+        // أصلاً ما وصلت السيرفر بعد) - منضيفها يدوياً بحالة "pending" عشان
+        // ما تختفي من قدام العميل، وبعدين منحاول نبعتها فوراً تحت
+        const pendingOutbox = loadOutbox(data.chatId).map((e) => ({
+          id: `pending-${e.clientMsgId}`,
+          from: "me",
+          text: e.text,
+          at: e.at,
+          clientMsgId: e.clientMsgId,
+          pending: true,
+        }));
+        setMessages([...historyMessages, ...pendingOutbox]);
       }
+      flushOutbox(data.chatId);
 
       // لو جاي من شاشة الترحيب (اسم/رقم جاهزين)، منبعت الاسم فوراً - هاي
       // أول رسالة "تواصل" بس (زي ما لو مسح QR لأول مرة)، والبوت هلق رح
@@ -3028,10 +3157,27 @@ export default function WebChat() {
 
   function handleSend() {
     const text = draft.trim();
-    if (!text || !socketRef.current) return;
-    pushMessage({ from: "me", text, at: new Date().toISOString() });
-    socketRef.current.emit("client_message", { text });
+    if (!text || !chatIdRef.current) return;
+    const clientMsgId =
+      typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
+    const at = new Date().toISOString();
+
+    pushMessage({ from: "me", text, at, clientMsgId, pending: true });
     setDraft("");
+
+    // منخزّن بالـoutbox *قبل* حتى ما نحاول نبعتها - لو النت مقطوع أو
+    // اتسكرت التاب فوراً بعدها، الرسالة تضل محفوظة وبتنبعت تلقائياً أول
+    // ما نرجع نتصل (شوف flushOutbox بحدث "joined")
+    const list = loadOutbox(chatIdRef.current);
+    list.push({ clientMsgId, text, at });
+    saveOutboxList(chatIdRef.current, list);
+
+    sendQueuedMessage({ clientMsgId, text }).then((ok) => {
+      if (!ok) return; // بتضل بالـoutbox، رح تنبعت تلقائياً بمحاولة الفلاش الجاية
+      const remaining = loadOutbox(chatIdRef.current).filter((e) => e.clientMsgId !== clientMsgId);
+      saveOutboxList(chatIdRef.current, remaining);
+      setMessages((prev) => prev.map((m) => (m.clientMsgId === clientMsgId ? { ...m, pending: false } : m)));
+    });
   }
 
   async function handlePhotoSelected(e) {
@@ -3367,7 +3513,7 @@ export default function WebChat() {
 
                 <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 3, marginTop: 3 }}>
                   <span style={{ fontSize: 10.5, color: THEME.textSecondary, opacity: 0.85 }}>{formatTime(m.at)}</span>
-                  {isMe && <CheckDoubleIcon color={THEME.headerBg} />}
+                  {isMe && (m.pending ? <PendingClockIcon color={THEME.textSecondary} /> : <CheckDoubleIcon color={THEME.headerBg} />)}
                 </div>
               </div>
             </div>

@@ -1,12 +1,21 @@
-// Service Worker لشات الويب - مسؤول عن شيئين بس:
+// Service Worker لشات الويب - مسؤول عن ٣ أشياء:
 // ١) استقبال إشعارات Push وعرضها (حتى لو التاب مسكّر تماماً)
-// ٢) تخزين بسيط (cache) لملفات التطبيق الأساسية عشان الموقع يشتغل (أو
-//    الأقل يفتح) حتى لو النت انقطع لحظياً - شرط أساسي لتصنيف PWA "قابل
-//    للتثبيت"
+// ٢) تخزين (cache) ملفات التطبيق الثابتة (JS/CSS/خطوط/صور/الصفحة نفسها)
+//    عن طريق Workbox، عشان الموقع يفتح بسرعة ويشتغل (أو الأقل يفتح) حتى
+//    لو النت انقطع لحظياً - شرط أساسي لتصنيف PWA "قابل للتثبيت"
+// ٣) طلبات الـAPI (بيانات حية: نقاط، رسائل، معلومات العميل...) ما إلها
+//    أي route مسجّل هون قصداً - فبتفوت عادي عالشبكة مباشرة بدون ما
+//    الـService Worker يتدخل فيها إطلاقاً (زي ما كانت "الشبكة أولاً" –
+//    بس هلق حتى أبسط: ولا كاش لها نهائياً، ما بدنا نعرض بيانات قديمة)
 
-const CACHE_NAME = "lotality-webchat-v1";
+importScripts("https://storage.googleapis.com/workbox-cdn/releases/7.1.0/workbox-sw.js");
+
+const CACHE_NAME = "lotality-webchat-v2";
 const APP_SHELL = ["/"];
 
+// نسخة الكاش تتغيّر (v1 -> v2) هون بس Workbox عنده تسمية أسماء كاش خاصة
+// فيه (workbox-precache-*, workbox-runtime-*)، فمنمسح الكاش اليدوي القديم
+// تبعنا فقط بالاسم القديم لو موجود، ومنسيب كاشات Workbox تدير حالها
 self.addEventListener("install", (event) => {
   self.skipWaiting();
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL).catch(() => {})));
@@ -14,20 +23,78 @@ self.addEventListener("install", (event) => {
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))))
+    caches.keys().then((keys) =>
+      Promise.all(
+        keys
+          .filter((k) => k.startsWith("lotality-webchat-") && k !== CACHE_NAME)
+          .map((k) => caches.delete(k))
+      )
+    )
   );
   self.clients.claim();
 });
 
-// استراتيجية "الشبكة أولاً، الكاش كبديل" - مهم جداً لتطبيق زي هاد بيعتمد
-// على بيانات حية (نقاط، رسائل...)، ما بدنا نعرض نسخة قديمة مخزّنة أبداً
-// إلا لو فعلاً النت مقطوع بالكامل
-self.addEventListener("fetch", (event) => {
-  if (event.request.method !== "GET") return;
-  event.respondWith(
-    fetch(event.request).catch(() => caches.match(event.request))
+if (workbox) {
+  workbox.setConfig({ debug: false });
+
+  const { registerRoute, NavigationRoute } = workbox.routing;
+  const { StaleWhileRevalidate, NetworkFirst } = workbox.strategies;
+  const { ExpirationPlugin } = workbox.expiration;
+  const { CacheableResponsePlugin } = workbox.cacheableResponse;
+
+  // ملفات التطبيق الثابتة (JS/CSS/Web Workers الناتجة من بناء Vite) -
+  // Stale While Revalidate: بترجّع النسخة المخزّنة فوراً (سريع)، وبنفس
+  // الوقت بتطلب نسخة جديدة بالخلفية وتحدّث الكاش لآخر مرة تجي فيها -
+  // مناسبة هون لأنها ملفات ثابتة أصلاً (اسمها فيه hash من Vite)، فمافي
+  // خطر "بيانات قديمة" زي ما فيه بطلبات الـAPI
+  registerRoute(
+    ({ request }) => ["script", "style", "worker"].includes(request.destination),
+    new StaleWhileRevalidate({
+      cacheName: "lotality-static-resources",
+      plugins: [
+        new CacheableResponsePlugin({ statuses: [0, 200] }),
+        new ExpirationPlugin({ maxEntries: 80, maxAgeSeconds: 30 * 24 * 60 * 60 }),
+      ],
+    })
   );
-});
+
+  // صور وخطوط - نفس منطق Stale While Revalidate
+  registerRoute(
+    ({ request }) => ["image", "font"].includes(request.destination),
+    new StaleWhileRevalidate({
+      cacheName: "lotality-static-media",
+      plugins: [
+        new CacheableResponsePlugin({ statuses: [0, 200] }),
+        new ExpirationPlugin({ maxEntries: 100, maxAgeSeconds: 30 * 24 * 60 * 60 }),
+      ],
+    })
+  );
+
+  // تنقّل بين الصفحات (فتح/تحديث الصفحة الرئيسية) - الشبكة أولاً دايماً
+  // (نفس فلسفة "ما نعرض نسخة قديمة إلا لو النت مقطوع فعلاً")، مع مهلة ٣
+  // ثواني بعدها منرجع للكاش مباشرة بدل ما نعلّق العميل بالانتظار
+  registerRoute(
+    new NavigationRoute(
+      new NetworkFirst({
+        cacheName: "lotality-pages",
+        networkTimeoutSeconds: 3,
+        plugins: [new CacheableResponsePlugin({ statuses: [0, 200] })],
+      })
+    )
+  );
+
+  // ⚠️ قصداً ما في أي route لطلبات الـAPI (fetch اللي بيرسلها كود الفرونت
+  // إند نفسه لـ API_ORIGIN بـsrc/api/*.js) ولا لـsocket.io - هاي بتفوت
+  // عالشبكة مباشرة بدون تدخل من الـService Worker إطلاقاً، فتضل البيانات
+  // الحية (نقاط، رسائل، معلومات العميل) طازة دايماً
+} else {
+  // fallback نادر (لو CDN تبع Workbox ما وصل لأي سبب) - نرجع لنفس سلوك
+  // "الشبكة أولاً، الكاش كبديل" القديم عشان الموقع يضل شغال بأي حال
+  self.addEventListener("fetch", (event) => {
+    if (event.request.method !== "GET") return;
+    event.respondWith(fetch(event.request).catch(() => caches.match(event.request)));
+  });
+}
 
 // إشعار Push وصل - البايلود عبارة عن JSON بسيط { title, body }
 self.addEventListener("push", (event) => {

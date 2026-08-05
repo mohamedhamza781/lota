@@ -37,6 +37,7 @@ import WavingHandRoundedIcon from "@mui/icons-material/WavingHandRounded";
 import NotificationsActiveRoundedIcon from "@mui/icons-material/NotificationsActiveRounded";
 import InfoRoundedIcon from "@mui/icons-material/InfoRounded";
 import MyLocationRoundedIcon from "@mui/icons-material/MyLocationRounded";
+import AlarmRoundedIcon from "@mui/icons-material/AlarmRounded";
 import { tokens } from "../theme/theme";
 import { branchesApi } from "../api/branches";
 import { establishmentsApi } from "../api/establishments";
@@ -241,6 +242,36 @@ export default function Branches() {
     }
   }
 
+  // === مدة تذكير البوت (botTimings.stallReminderMinutes) - كم دقيقة
+  // يستنى البوت (واتساب أو شات الويب، نفس المنطق لكليهما) قبل ما يعيد
+  // نفس السؤال لو العميل ما رد عليه ===
+  const [reminderMinutes, setReminderMinutes] = useState(
+    () => getCached(`establishmentDetail:${establishmentId}`)?.botTimings?.stallReminderMinutes ?? 7
+  );
+  const [reminderSaving, setReminderSaving] = useState(false);
+  const [reminderSaved, setReminderSaved] = useState(false);
+  const [reminderError, setReminderError] = useState("");
+
+  async function handleSaveReminder() {
+    const minutes = Number(reminderMinutes);
+    if (!Number.isFinite(minutes) || minutes < 1 || minutes > 120) {
+      setReminderError("المدة لازم تكون رقم بين 1 و120 دقيقة");
+      return;
+    }
+    setReminderSaving(true);
+    setReminderSaved(false);
+    setReminderError("");
+    try {
+      await establishmentsApi.update(establishmentId, { botTimings: { stallReminderMinutes: minutes } });
+      setReminderSaved(true);
+      setTimeout(() => setReminderSaved(false), 2500);
+    } catch (err) {
+      setReminderError(err.message || "تعذّر حفظ مدة التذكير");
+    } finally {
+      setReminderSaving(false);
+    }
+  }
+
   // بدل ٤ طلبات GET منفصلة لنفس المنشأة (شعار + بانر + فوتر + نافذة
   // ترحيب)، طلب واحد بس بيجيب كل شي، ومخزّن بالكاش عشان أي رجوع للصفحة
   // يعرض القيم فوراً بدون انتظار
@@ -273,6 +304,7 @@ export default function Branches() {
         setPromoAudience(est.promoTextAudience || "all");
         setPromoCustomerIds((est.promoTextCustomerIds || []).map((id) => (typeof id === "string" ? id : id._id || id)));
         setDeliveryWhatsAppNumber(est.deliveryWhatsAppNumber || "");
+        setReminderMinutes(est.botTimings?.stallReminderMinutes ?? 7);
       })
       .catch(() => {});
   }, [establishmentId]);
@@ -916,6 +948,65 @@ export default function Branches() {
               {aboutSaving ? "جاري الحفظ…" : "حفظ رقم الديلفري"}
             </Button>
             {aboutSaved && (
+              <Typography variant="caption" sx={{ color: "success.main", fontWeight: 700 }}>
+                تم الحفظ ✅
+              </Typography>
+            )}
+          </Stack>
+        </Stack>
+      </Paper>
+
+      {/* مدة تذكير البوت - كم دقيقة يستنى قبل ما يعيد نفس السؤال لو
+          العميل ما رد (نفس المنطق لبوت الواتساب وشات الويب) */}
+      <Paper elevation={0} sx={cardStyle}>
+        <Stack spacing={2.5}>
+          <Stack direction="row" spacing={1.2} alignItems="center">
+            <AlarmRoundedIcon sx={{ color: tokens.muted }} />
+            <Stack spacing={0.3}>
+              <Typography sx={{ fontFamily: '"IBM Plex Sans Arabic"', fontWeight: 700, fontSize: "0.95rem" }}>
+                مدة تذكير البوت
+              </Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                لو العميل وقف بمنتصف أي سؤال (واتساب أو شات الويب) ولا رد خلال هاي المدة، البوت بيعيد بعتله نفس السؤال تذكيراً - مع إشعار Push لتذكيره بالرد.
+              </Typography>
+            </Stack>
+          </Stack>
+
+          <TextField
+            label="عدد الدقايق"
+            type="number"
+            size="small"
+            fullWidth
+            value={reminderMinutes}
+            onChange={(e) => setReminderMinutes(e.target.value)}
+            inputProps={{ min: 1, max: 120 }}
+            sx={{ maxWidth: 220, "& .MuiOutlinedInput-root": { borderRadius: "12px" } }}
+          />
+
+          {reminderError && (
+            <Typography variant="caption" sx={{ color: "error.main", fontWeight: 600 }}>
+              {reminderError}
+            </Typography>
+          )}
+
+          <Stack direction="row" spacing={1.5} alignItems="center">
+            <Button
+              variant="contained"
+              disabled={reminderSaving}
+              onClick={handleSaveReminder}
+              sx={{
+                backgroundColor: tokens.ink,
+                color: tokens.paper,
+                fontFamily: '"IBM Plex Sans Arabic"',
+                fontWeight: 600,
+                borderRadius: "10px",
+                px: 2.5,
+                "&:hover": { backgroundColor: tokens.inkSoft || tokens.ink },
+              }}
+            >
+              {reminderSaving ? "جاري الحفظ…" : "حفظ مدة التذكير"}
+            </Button>
+            {reminderSaved && (
               <Typography variant="caption" sx={{ color: "success.main", fontWeight: 700 }}>
                 تم الحفظ ✅
               </Typography>
