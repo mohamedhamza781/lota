@@ -2884,11 +2884,20 @@ export default function WebChat() {
   // الحقيقية من السيرفر تلقائياً، شوف "joined" تحت)
   useEffect(() => {
     if (screen !== "chat" && screen !== "registering") return;
+    if (connectionState === "connected") return; // متصل فعلياً - ولا داعي لأي نسخة محلية
     const savedChatId = localStorage.getItem(storageKey);
     if (!savedChatId) return; // زائر جديد كلياً - ما في نسخة محفوظة أصلاً لنعرضها
 
+    // ⚠️ ما منعتبرها "أوفلاين" لمجرد إنه لسا "عم يحاول يتصل" (connecting) -
+    // هاي حالة طبيعية أول ما تفتح الصفحة وممكن تاخذ كذا ثانية حتى مع نت
+    // ممتاز (سيرفر بطيء يرد أول مرة مثلاً)، مش دليل انقطاع نت حقيقي. لازم
+    // دليل فعلي: إما المتصفح نفسه بيأكد إنه ما في نت (navigator.onLine)،
+    // أو صار خطأ اتصال صريح (join_error/error) - وقتها بس منعتمد النسخة
+    // المحلية، بعد مهلة قصيرة لتجنب الفلاش على انقطاع لحظي بيصلح لحاله
+    const hasRealOfflineEvidence = !navigator.onLine || connectionState === "error";
+    if (!hasRealOfflineEvidence) return;
+
     const timer = setTimeout(() => {
-      if (connectionState === "connected") return; // اتصل بنجاح قبل ما تخلص المهلة - ولا داعي للنسخة المحلية
       try {
         const cached = localStorage.getItem(HISTORY_CACHE_PREFIX + savedChatId);
         if (cached) {
@@ -2904,11 +2913,10 @@ export default function WebChat() {
       } catch {
         // تجاهل - أسوأ حالة يضل العميل بشاشة الاتصال العادية
       }
-    }, 6000);
+    }, 3000);
 
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [screen]);
+  }, [screen, connectionState, storageKey]);
 
   useEffect(() => {
     if (screen !== "chat" && screen !== "registering") return; // لسا بشاشة الترحيب - ما في داعي نفتح اتصال
