@@ -6,6 +6,7 @@ import { resolveImageUrl } from "../api/uploads";
 import { uploadWebChatMealPhoto, fetchWebChatAccount, fetchWebChatInfo, uploadWebChatAvatar, fetchVapidPublicKey, subscribeToPush } from "../api/webChat";
 import { queuePhotoForBackgroundSync } from "../utils/offlineUploadQueue";
 import PublicMenu from "./PublicMenu";
+import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
 
 // لوحة الألوان الافتراضية - بتُستخدم بس لو المنشأة لسا ما حدّدت لون خاص
 // فيها (menuPrimaryColor فاضي)، أو لحد ما يوصل لون المنشأة الفعلي من
@@ -1358,7 +1359,7 @@ function NeedQrScreen({ slug }) {
         )}
 
         <div style={{ fontSize: 17, fontWeight: 800, color: THEME.textPrimary || "#0F172A" }}>
-          امسح رمز QR أول شي 📲
+          امسح رمز QR أول شي <QrCodeScannerIcon />
         </div>
         <div style={{ fontSize: 13, color: THEME.textSecondary || "#64748B", marginTop: 10, lineHeight: 1.7 }}>
           {info?.name
