@@ -519,27 +519,26 @@ function AccountView({ slug, chatId }) {
             لسا ما رفعت أي صورة
           </div>
         )}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+        {/* [Change 4] نعرض أسماء الوجبات فقط (بدون صور) بقائمة نصية */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {(photos || []).map((p) => (
-            <div key={p.id} style={{ borderRadius: 12, overflow: "hidden", aspectRatio: "1 / 1", position: "relative", border: `1px solid ${THEME.border}` }}>
-              <img loading="lazy" src={resolveImageUrl(p.imageUrl)} alt={p.mealName || ""} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            <div
+              key={p.id}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "10px 14px",
+                background: "#fff",
+                borderRadius: 12,
+                border: `1px solid ${THEME.border}`,
+              }}
+            >
+              <span style={{ fontSize: 13.5, color: THEME.textPrimary, fontWeight: 600 }}>
+                {p.mealName || "وجبة غير مسمّاة"}
+              </span>
               {p.pointsAwarded > 0 && (
-                <span
-                  style={{
-                    position: "absolute",
-                    bottom: 4,
-                    left: 4,
-                    background: "rgba(0,0,0,0.55)",
-                    color: "#fff",
-                    fontSize: 10.5,
-                    fontWeight: 600,
-                    borderRadius: 8,
-                    padding: "2px 6px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 3,
-                  }}
-                >
+                <span style={{ fontSize: 11, color: THEME.accent, fontWeight: 700, display: "flex", alignItems: "center", gap: 3 }}>
                   <StarIcon /> {p.pointsAwarded}
                 </span>
               )}
@@ -2569,6 +2568,16 @@ export default function WebChat() {
   // لو مش صحيح، البوت برد جوا نفس المحادثة "لازم تمسح QR..." بدل ما
   // نمنعه من الوصول لفورم التسجيل من الأساس.
   const [screen, setScreen] = useState(() => {
+    // [Change 1] لو التطبيق المثبّت (PWA) فتح برابط فيه ?cid=، نحفظه
+    // بـlocalStorage ليُعامَل كجلسة موجودة مسبقاً (بدون شاشة تسجيل)
+    try {
+      const cidFromUrl = new URLSearchParams(window.location.search).get("cid");
+      if (cidFromUrl && !localStorage.getItem(storageKey)) {
+        localStorage.setItem(storageKey, cidFromUrl);
+      }
+    } catch {
+      // تجاهل - localStorage مش متاح (وضع خاص)
+    }
     if (localStorage.getItem(storageKey)) return "chat";
     return "welcome";
   });
@@ -2708,11 +2717,13 @@ export default function WebChat() {
   // viaQr نفسها محفوظة بالـstate فوق، فهاد التنظيف ما بيأثر على قرارات
   // هاي الجلسة الحالية إطلاقاً.
   useEffect(() => {
-    if (!viaQr && !referralCode) return;
+    const hasCid = Boolean(new URLSearchParams(window.location.search).get("cid"));
+    if (!viaQr && !referralCode && !hasCid) return;
     try {
       const url = new URL(window.location.href);
       url.searchParams.delete("src");
       url.searchParams.delete("ref");
+      url.searchParams.delete("cid"); // [Change 1] منمسح cid بعد ما نقرأه
       window.history.replaceState({}, "", url.toString());
     } catch {
       // تجاهل - ما بيأثر على شي جوهري
@@ -2926,7 +2937,8 @@ export default function WebChat() {
       // الـchatId) - هيك المحادثة بتضل موجودة حتى لو عمل ريفرش للصفحة،
       // بدل ما تنمسح وتبلش فاضية من جديد كل مرة
       if (Array.isArray(data.history)) {
-        const historyMessages = data.history.map((m) => ({ id: m.id, from: m.from, text: m.text, at: m.at }));
+        // [Change 5] نضيف imageUrl عشان صور الوجبات تظهر من التاريخ بعد الريفرش
+        const historyMessages = data.history.map((m) => ({ id: m.id, from: m.from, text: m.text, imageUrl: m.imageUrl || null, at: m.at }));
         // أي رسالة لسا بالـoutbox (اتبعتت بس ما توصل تأكيد إنها انحفظت -
         // مثلاً اتسكرت التاب والنت مقطوع) ما رح تكون جوا history (لأنها
         // أصلاً ما وصلت السيرفر بعد) - منضيفها يدوياً بحالة "pending" عشان
@@ -3072,6 +3084,7 @@ export default function WebChat() {
   // طازة عشان isValidQrVisit بالباك إند يقبلها كزيارة حقيقية جديدة
   function handleQrRescanSuccess() {
     setShowQrScanner(false);
+    setChatLocked(false); // [Change 2] فتح صندوق الكتابة فوراً بعد مسح QR ناجح
     try {
       localStorage.setItem(lastQrScanKey, String(Date.now()));
     } catch {
@@ -3111,7 +3124,10 @@ export default function WebChat() {
       link.rel = "manifest";
       document.head.appendChild(link);
     }
-    link.href = `${API_ORIGIN}/api/web-chat/${slug}/manifest.json`;
+    // [Change 1] نضيف chatId لرابط manifest عشان start_url يحتويه ويحفظ
+    // الجلسة لما العميل يفتح التطبيق المثبّت مرة تانية (خصوصاً iOS)
+    const savedChatIdForManifest = (() => { try { return localStorage.getItem(storageKey); } catch { return null; } })();
+    link.href = `${API_ORIGIN}/api/web-chat/${slug}/manifest.json${savedChatIdForManifest ? `?cid=${encodeURIComponent(savedChatIdForManifest)}` : ''}`;
 
     let themeMeta = document.querySelector('meta[name="theme-color"]');
     if (!themeMeta) {
@@ -3720,9 +3736,10 @@ export default function WebChat() {
                   position: "relative",
                 }}
               >
-                {m.imagePreview && (
+                {/* [Change 5] نعرض الصورة من blob (محلي) أو من رابط الخادم (بعد ريفرش) */}
+                {(m.imagePreview || m.imageUrl) && (
                   <div style={{ borderRadius: 12, overflow: "hidden", marginBottom: m.text ? 6 : 2 }}>
-                    <img loading="lazy" src={m.imagePreview} alt="" style={{ width: "100%", maxWidth: 260, height: "auto", display: "block" }} />
+                    <img loading="lazy" src={m.imagePreview || resolveImageUrl(m.imageUrl)} alt="" style={{ width: "100%", maxWidth: 260, height: "auto", display: "block" }} />
                   </div>
                 )}
 
@@ -3819,24 +3836,40 @@ export default function WebChat() {
         }}
       >
         {chatLocked ? (
-          // الزيارة الحالية خلصت (وصل لملخص نهاية الزيارة) - صندوق
-          // الإرسال مقفول، بس العميل لسا يقدر يتصفح باقي التبويبات عادي
-          // (منيو/حسابي/هدايا/ديلفري)، ولو صاحب المنشأة بعتله رسالة
-          // يدوية لسا رح توصله عادي
+          // [Change 2] الزيارة خلصت - بنعرض زر ماسح QR داخل الشات مباشرة
+          // عشان العميل يقدر يبلّش زيارة جديدة بدون ما يطلع من التطبيق
           <div
             style={{
               maxWidth: 800,
               margin: "0 auto",
-              textAlign: "center",
-              fontSize: 12.5,
-              color: THEME.textSecondary,
-              background: THEME.bgChat,
-              borderRadius: 14,
-              padding: "12px 16px",
-              lineHeight: 1.8,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 10,
+              padding: "10px 16px",
             }}
           >
-            خلصت زيارتك الحالية 🎉 امسح رمز QR بزيارتك الجاية عشان تكمّل حكيك من جديد مع البوت
+            <div style={{ textAlign: "center", fontSize: 12.5, color: THEME.textSecondary, background: THEME.bgChat, borderRadius: 14, padding: "10px 14px", lineHeight: 1.8, width: "100%" }}>
+              خلصت زيارتك الحالية 🎉 امسح رمز QR في المحل عشان تبلّش زيارة جديدة
+            </div>
+            <button
+              onClick={() => setShowQrScanner(true)}
+              style={{
+                border: `2px solid ${THEME.headerBg || "#075E54"}`,
+                borderRadius: 14,
+                padding: "10px 22px",
+                fontSize: 13.5,
+                fontWeight: 700,
+                color: THEME.headerBg || "#075E54",
+                background: "transparent",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 7,
+              }}
+            >
+              📷 امسح QR الآن
+            </button>
           </div>
         ) : (
         <div style={{ display: "flex", alignItems: "flex-end", gap: 8, maxWidth: 800, margin: "0 auto" }}>
