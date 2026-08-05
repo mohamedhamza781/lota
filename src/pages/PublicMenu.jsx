@@ -36,6 +36,10 @@ export default function PublicMenu({ slugProp, hideDialog = false } = {}) {
   const [establishment, setEstablishment] = useState(null);
   const [menu, setMenu] = useState(null);
   const [promotions, setPromotions] = useState([]);
+  // true لما نكون عم نعرض نسخة منيو محفوظة محلياً (فشل جلب نسخة طازة،
+  // غالباً بسبب انقطاع نت) بدل ما تظهر "المنيو غير موجود" وهو موجود
+  // فعلياً بس مش قادرين نجيبه هلق
+  const [isStale, setIsStale] = useState(false);
 
   // ثيم المنيو - بلون هاي المنشأة تحديداً (menuPrimaryColor)، أو الأخضر
   // الافتراضي لو ما حدد صاحب المنشأة لون بعد
@@ -78,9 +82,31 @@ export default function PublicMenu({ slugProp, hideDialog = false } = {}) {
         setEstablishment(data.establishment);
         setMenu(data.menu);
         setPromotions(data.promotions || []);
+        setIsStale(false);
+        try {
+          localStorage.setItem(`webchat_menu_cache:${slug}`, JSON.stringify(data));
+        } catch {
+          // تجاهل - الكاش تحسين إضافي بس
+        }
       })
       .catch(() => {
-        if (!cancelled) setNotFound(true);
+        if (cancelled) return;
+        // فشل الطلب (غالباً انقطاع نت) - منرجع لآخر نسخة منيو محفوظة
+        // محلياً بدل ما نعرض "المنيو غير موجود" وهو موجود فعلياً
+        try {
+          const cached = localStorage.getItem(`webchat_menu_cache:${slug}`);
+          if (cached) {
+            const data = JSON.parse(cached);
+            setEstablishment(data.establishment);
+            setMenu(data.menu);
+            setPromotions(data.promotions || []);
+            setIsStale(true);
+            return;
+          }
+        } catch {
+          // تجاهل
+        }
+        setNotFound(true);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -287,6 +313,21 @@ export default function PublicMenu({ slugProp, hideDialog = false } = {}) {
           )}
 
           <Navbar logoUrl={establishment.logoUrl} />
+          {isStale && (
+            <Box
+              sx={{
+                textAlign: "center",
+                fontSize: 12,
+                fontWeight: 600,
+                color: "text.secondary",
+                bgcolor: "rgba(0,0,0,0.03)",
+                py: 1,
+                px: 2,
+              }}
+            >
+              ⚠️ لا يوجد اتصال بالإنترنت - عم تشوف آخر نسخة محفوظة من المنيو
+            </Box>
+          )}
           <MenuHero />
           <Marquee items={categories.map((c) => c.name)} />
           <Box id="menu" sx={{ maxWidth: 1200, mx: "auto", px: { xs: 2, md: 6 }, py: 8 }}>

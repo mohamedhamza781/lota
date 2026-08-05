@@ -287,22 +287,70 @@ function formatDate(iso) {
 }
 
 // تبويب "حسابي" - بيانات العميل، نقاطه، صور الوجبات يلي رفعها، وهداياه
+// شريط صغير بيظهر فوق أي تبويب عم يعرض نسخة محفوظة محلياً (مش بيانات
+// طازة من السيرفر) - عشان العميل يعرف إنه اللي قدامه ممكن يكون قديم شوي
+function StaleDataNotice() {
+  const THEME = useContext(ThemeContext);
+  return (
+    <div
+      style={{
+        textAlign: "center",
+        fontSize: 11.5,
+        fontWeight: 600,
+        color: THEME.textSecondary,
+        background: "rgba(255,255,255,0.9)",
+        borderBottom: `1px solid ${THEME.border}`,
+        padding: "7px 12px",
+        flexShrink: 0,
+      }}
+    >
+      ⚠️ لا يوجد اتصال بالإنترنت - عم تشوف آخر نسخة محفوظة
+    </div>
+  );
+}
+
 function AccountView({ slug, chatId }) {
   const THEME = useContext(ThemeContext);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
   const [data, setData] = useState(null);
+  const [isStale, setIsStale] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const avatarInputRef = useRef(null);
+
+  const accountCacheKey = `webchat_account_cache:${chatId}`;
 
   const loadAccount = useCallback(() => {
     if (!chatId) return;
     setLoading(true);
     fetchWebChatAccount({ slug, chatId })
-      .then((res) => setData(res))
-      .catch((err) => setErrorMsg(err.message || "تعذّر تحميل بيانات الحساب"))
+      .then((res) => {
+        setData(res);
+        setIsStale(false);
+        setErrorMsg("");
+        try {
+          localStorage.setItem(accountCacheKey, JSON.stringify(res));
+        } catch {
+          // تجاهل - الكاش تحسين إضافي بس
+        }
+      })
+      .catch((err) => {
+        // فشل الطلب (غالباً انقطاع نت) - منرجع لآخر نسخة محفوظة بدل ما
+        // نعرض رسالة خطأ وتصير الشاشة فاضية بالكامل
+        try {
+          const cached = localStorage.getItem(accountCacheKey);
+          if (cached) {
+            setData(JSON.parse(cached));
+            setIsStale(true);
+            return;
+          }
+        } catch {
+          // تجاهل
+        }
+        setErrorMsg(err.message || "تعذّر تحميل بيانات الحساب");
+      })
       .finally(() => setLoading(false));
-  }, [slug, chatId]);
+  }, [slug, chatId, accountCacheKey]);
 
   useEffect(() => {
     loadAccount();
@@ -354,7 +402,7 @@ function AccountView({ slug, chatId }) {
 
   return (
     <div className="wc-scroll" style={{ flex: 1, overflowY: "auto", padding: "18px 16px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
-      {/* بطاقة العميل */}
+      {isStale && <StaleDataNotice />}      {/* بطاقة العميل */}
       <div style={{ background: "#fff", borderRadius: 18, padding: 18, border: `1px solid ${THEME.border}`, display: "flex", alignItems: "center", gap: 14 }}>
         <input ref={avatarInputRef} type="file" accept="image/*" onChange={handleAvatarSelected} style={{ display: "none" }} />
         <button
@@ -513,6 +561,9 @@ function CouponsView({ slug, chatId }) {
   const [errorMsg, setErrorMsg] = useState("");
   const [coupons, setCoupons] = useState(null);
   const [registered, setRegistered] = useState(true);
+  const [isStale, setIsStale] = useState(false);
+
+  const accountCacheKey = `webchat_account_cache:${chatId}`;
 
   const loadCoupons = useCallback(() => {
     if (!chatId) return;
@@ -521,10 +572,31 @@ function CouponsView({ slug, chatId }) {
       .then((res) => {
         setRegistered(Boolean(res?.registered));
         setCoupons(res?.coupons || []);
+        setIsStale(false);
+        setErrorMsg("");
+        try {
+          localStorage.setItem(accountCacheKey, JSON.stringify(res));
+        } catch {
+          // تجاهل
+        }
       })
-      .catch((err) => setErrorMsg(err.message || "تعذّر تحميل هداياك"))
+      .catch((err) => {
+        try {
+          const cached = localStorage.getItem(accountCacheKey);
+          if (cached) {
+            const res = JSON.parse(cached);
+            setRegistered(Boolean(res?.registered));
+            setCoupons(res?.coupons || []);
+            setIsStale(true);
+            return;
+          }
+        } catch {
+          // تجاهل
+        }
+        setErrorMsg(err.message || "تعذّر تحميل هداياك");
+      })
       .finally(() => setLoading(false));
-  }, [slug, chatId]);
+  }, [slug, chatId, accountCacheKey]);
 
   useEffect(() => {
     loadCoupons();
@@ -558,6 +630,7 @@ function CouponsView({ slug, chatId }) {
 
   return (
     <div className="wc-scroll" style={{ flex: 1, overflowY: "auto", padding: "18px 16px 24px", display: "flex", flexDirection: "column", gap: 10 }}>
+      {isStale && <StaleDataNotice />}
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, color: THEME.textPrimary, fontWeight: 700, fontSize: 16 }}>
         <TicketIcon />
         الهدايا
@@ -2399,6 +2472,18 @@ export default function WebChat() {
   const [chatLocked, setChatLocked] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [messages, setMessages] = useState([]);
+  // true لما نكون عم نعرض نسخة محفوظة محلياً من المحادثة (شوف
+  // HISTORY_CACHE_PREFIX تحت) لأنه ما قدرنا نتصل بالسيرفر إطلاقاً - عشان
+  // نفرقها عن محادثة حقيقية متصلة، ونعطّل صندوق الكتابة (لا معنى لإرسال
+  // رسالة والسيرفر أصلاً مش قادرين نوصله ولا حتى نعرف احنا مين بعد -
+  // بعكس outbox العادي يلي بيصير بعد ما نتعرف عالعميل وبس النت ينقطع
+  // بمنتصف محادثة شغالة أصلاً)
+  const [isOfflineFallback, setIsOfflineFallback] = useState(false);
+  // true لو localStorage مش متوفر فعلياً (أشهر سبب: وضع تصفح خاص Private/
+  // Incognito بمتصفح بيمنعه أو بيمسحه أول ما تسكر التاب) - بهاي الحالة كل
+  // ضمانات "عدم فقدان البيانات" (outbox، كاش المحادثة...) مش فعّالة، فمهم
+  // نعلم العميل صراحة بدل ما يظن إنه محمي وهو مش محمي فعلياً
+  const [storageUnavailable, setStorageUnavailable] = useState(false);
   const [botTyping, setBotTyping] = useState(false);
   const [draft, setDraft] = useState("");
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -2525,6 +2610,10 @@ export default function WebChat() {
   const [deliveryWhatsAppNumber, setDeliveryWhatsAppNumber] = useState("");
   const [promoText, setPromoText] = useState("");
   const [promotions, setPromotions] = useState([]);
+  // true لما تبويبات "الرئيسية"/"الديلفري" تكون عم تعرض نسخة محفوظة
+  // محلياً (فشل جلب البيانات الطازة، غالباً بسبب انقطاع نت) بدل بيانات
+  // حقيقية من السيرفر - عشان نعلم العميل بدل ما نعرضها وكأنها محدّثة
+  const [usingCachedInfo, setUsingCachedInfo] = useState(false);
   const [welcomeName, setWelcomeName] = useState("");
 
   // بيانات الاسم/الرقم يلي جايين من شاشة الترحيب - بعد أول اتصال منبعتهم
@@ -2613,16 +2702,39 @@ export default function WebChat() {
         setPromoText(data?.promoText || "");
         setPromotions(data?.promotions || []);
         setEarlyInfo(data);
+        setUsingCachedInfo(false);
         try {
           localStorage.setItem(
             brandCacheKey,
-            JSON.stringify({ logoUrl: data?.logoUrl, name: data?.name, menuPrimaryColor: data?.menuPrimaryColor })
+            JSON.stringify({
+              logoUrl: data?.logoUrl,
+              name: data?.name,
+              menuPrimaryColor: data?.menuPrimaryColor,
+              deliveryWhatsAppNumber: data?.deliveryWhatsAppNumber,
+              promoText: data?.promoText,
+              promotions: data?.promotions,
+            })
           );
         } catch {
           // تجاهل - الكاش تحسين إضافي بس، مش أساسي لعمل الصفحة
         }
       })
-      .catch(() => {});
+      .catch(() => {
+        // فشل الطلب (غالباً انقطاع نت) - منرجع لآخر نسخة محفوظة محلياً
+        // بدل ما تضل تبويبات "الرئيسية"/"الديلفري" فاضية تماماً
+        try {
+          const cached = localStorage.getItem(brandCacheKey);
+          if (cached) {
+            const brand = JSON.parse(cached);
+            setDeliveryWhatsAppNumber(brand.deliveryWhatsAppNumber || "");
+            setPromoText(brand.promoText || "");
+            setPromotions(brand.promotions || []);
+            setUsingCachedInfo(true);
+          }
+        } catch {
+          // تجاهل
+        }
+      });
   }, [slug]);
 
   // منمسح ?src=qr من شريط العنوان فوراً بعد أول قراءة (مرة وحدة) - عشان
@@ -2749,6 +2861,55 @@ export default function WebChat() {
     [loadOutbox, saveOutboxList, sendQueuedMessage]
   );
 
+  const HISTORY_CACHE_PREFIX = "webchat_history_cache:";
+
+  // بتخزّن آخر نسخة معروفة من المحادثة (آخر ٦٠ رسالة) محلياً بكل مرة
+  // تتحدّث - عشان لو العميل رجع فتح التطبيق والنت مقطوع بالكامل (مش مجرد
+  // انقطاع بمنتصف محادثة شغالة أصلاً، هاد الـoutbox يغطيه لحاله)، يقدر
+  // يشوف على الأقل آخر شي كان موجود بدل شاشة خطأ فاضية
+  useEffect(() => {
+    if (!chatId || !messages.length) return;
+    try {
+      localStorage.setItem(HISTORY_CACHE_PREFIX + chatId, JSON.stringify(messages.slice(-60)));
+    } catch {
+      // تجاهل - أسوأ حالة ما تنحفظ نسخة احتياطية، المحادثة الحقيقية
+      // بالسيرفر مش متأثرة إطلاقاً
+    }
+  }, [chatId, messages]);
+
+  // لو ما قدرنا نتصل بالسيرفر إطلاقاً خلال مهلة معقولة (مش مجرد بطء لحظي)
+  // ومعنا نسخة محفوظة محلياً من محادثة سابقة، منعرضها بدل ما يضل العميل
+  // واقف قدام شاشة تحميل/خطأ فاضية - بوضع "قراءة فقط" واضح (بانر + تعطيل
+  // صندوق الكتابة)، لحد ما النت يرجع ويتصل عادي (بلحظتها منستبدلها بالنسخة
+  // الحقيقية من السيرفر تلقائياً، شوف "joined" تحت)
+  useEffect(() => {
+    if (screen !== "chat" && screen !== "registering") return;
+    const savedChatId = localStorage.getItem(storageKey);
+    if (!savedChatId) return; // زائر جديد كلياً - ما في نسخة محفوظة أصلاً لنعرضها
+
+    const timer = setTimeout(() => {
+      if (connectionState === "connected") return; // اتصل بنجاح قبل ما تخلص المهلة - ولا داعي للنسخة المحلية
+      try {
+        const cached = localStorage.getItem(HISTORY_CACHE_PREFIX + savedChatId);
+        if (cached) {
+          const cachedMessages = JSON.parse(cached);
+          if (Array.isArray(cachedMessages) && cachedMessages.length) {
+            setMessages(cachedMessages);
+            setChatId(savedChatId);
+            chatIdRef.current = savedChatId;
+            setIsOfflineFallback(true);
+            setScreen("chat");
+          }
+        }
+      } catch {
+        // تجاهل - أسوأ حالة يضل العميل بشاشة الاتصال العادية
+      }
+    }, 6000);
+
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen]);
+
   useEffect(() => {
     if (screen !== "chat" && screen !== "registering") return; // لسا بشاشة الترحيب - ما في داعي نفتح اتصال
 
@@ -2785,6 +2946,7 @@ export default function WebChat() {
       localStorage.setItem(storageKey, data.chatId);
       setEstablishment(data);
       setConnectionState("connected");
+      setIsOfflineFallback(false);
       setChatLocked(Boolean(data.chatLocked));
 
       // بيرجع المحادثة السابقة كاملة من الباك إند (لو عميل راجع بنفس
@@ -3031,6 +3193,20 @@ export default function WebChat() {
   useEffect(() => {
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("/sw.js").catch((err) => console.error("فشل تسجيل Service Worker:", err));
+    }
+  }, []);
+
+  // فحص مرة وحدة عند الفتح: localStorage شغال فعلياً ولا لأ (وضع تصفح
+  // خاص ببعض المتصفحات بيرمي خطأ عند أي setItem، أو بيمسح كل شي أول ما
+  // تسكر التاب) - لو مش شغال، منعلم العميل صراحة بدل ما نعده بحفظ
+  // تلقائي أثناء انقطاع النت وهو مش فعلياً موجود
+  useEffect(() => {
+    try {
+      const testKey = "__lotality_storage_test__";
+      localStorage.setItem(testKey, "1");
+      localStorage.removeItem(testKey);
+    } catch {
+      setStorageUnavailable(true);
     }
   }, []);
 
@@ -3329,6 +3505,48 @@ export default function WebChat() {
       <InstallBanner {...installBannerProps} establishmentName={establishment?.establishmentName} />
       <InstalledAppHint isStandaloneNow={isStandaloneNow} />
       <OfflineBanner connectionState={connectionState} />
+      {storageUnavailable && (
+        <div
+          style={{
+            position: "fixed",
+            top: isOfflineFallback ? "calc(env(safe-area-inset-top, 0px) + 48px)" : "calc(env(safe-area-inset-top, 0px) + 8px)",
+            left: 12,
+            right: 12,
+            zIndex: 60,
+            textAlign: "center",
+            fontSize: 12,
+            fontWeight: 600,
+            color: "#7C2D12",
+            background: "#FEF3C7",
+            border: "1px solid #FCD34D",
+            borderRadius: 12,
+            padding: "8px 14px",
+          }}
+        >
+          ⚠️ متصفحك بوضع تصفح خاص - ميزة "حفظ الرسائل تلقائياً عند انقطاع النت" مش شغالة هلق. لا تسكر الصفحة وانت أوفلاين.
+        </div>
+      )}
+      {isOfflineFallback && (
+        <div
+          style={{
+            position: "fixed",
+            top: "calc(env(safe-area-inset-top, 0px) + 8px)",
+            left: 12,
+            right: 12,
+            zIndex: 60,
+            textAlign: "center",
+            fontSize: 12.5,
+            fontWeight: 600,
+            color: "#fff",
+            background: "rgba(15, 23, 42, 0.88)",
+            backdropFilter: "blur(6px)",
+            borderRadius: 12,
+            padding: "8px 14px",
+          }}
+        >
+          أنت غير متصل حالياً — هاي آخر نسخة محفوظة من محادثتك. أي رسالة بترسلها هلق رح تنبعت تلقائياً أول ما يرجع النت.
+        </div>
+      )}
       {/* تذكير مسح QR بعد ١٢ ساعة كان نص/بانر بالسابق واتشال بناءً على طلب
           صريح (كان مزعج). هلق بدله أيقونة صغيرة بالهيدر (QrRescanIcon) بس -
           بتفتح كاميرا داخل نفس الصفحة (InChatQrScanner) فيها العميل يمسح
@@ -3402,12 +3620,15 @@ export default function WebChat() {
       )}
 
       {activeTab === "home" ? (
-        <HomeView
-          logoUrl={establishment?.establishmentLogo}
-          establishmentName={establishment?.establishmentName}
-          promoText={promoText}
-          promotions={promotions}
-        />
+        <>
+          {usingCachedInfo && <StaleDataNotice />}
+          <HomeView
+            logoUrl={establishment?.establishmentLogo}
+            establishmentName={establishment?.establishmentName}
+            promoText={promoText}
+            promotions={promotions}
+          />
+        </>
       ) : activeTab === "account" ? (
         <AccountView slug={slug} chatId={chatId} />
       ) : activeTab === "coupons" ? (
@@ -3424,11 +3645,14 @@ export default function WebChat() {
           </div>
         </MenuCurtainReveal>
       ) : activeTab === "about" ? (
-        <DeliveryView
-          deliveryWhatsAppNumber={deliveryWhatsAppNumber}
-          establishmentName={establishment?.establishmentName || earlyInfo?.name}
-          logoUrl={establishment?.establishmentLogo || earlyInfo?.logoUrl}
-        />
+        <>
+          {usingCachedInfo && <StaleDataNotice />}
+          <DeliveryView
+            deliveryWhatsAppNumber={deliveryWhatsAppNumber}
+            establishmentName={establishment?.establishmentName || earlyInfo?.name}
+            logoUrl={establishment?.establishmentLogo || earlyInfo?.logoUrl}
+          />
+        </>
       ) : (
       <>
       {/* غلاف position:relative محصور بحدود صندوق المحادثة بالضبط (مو
