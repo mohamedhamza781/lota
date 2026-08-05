@@ -1596,28 +1596,6 @@ function WelcomeScreen({ slug, onSubmit, installBannerProps, logoUrl: earlyLogoU
                 }}
               />
 
-              {/* بادج "تطوير Kajo" - رفعناها لفوق البطاقة (نفس تعديل شاشة
-                  "أهلاً بكم" الأخرى) عشان تكون واضحة وظاهرة بدل ما تضيع
-                  بسطر باهت آخر الشاشة */}
-              <div
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  padding: "5px 12px",
-                  borderRadius: 999,
-                  background: `${THEME.headerBg || "#64748B"}12`,
-                  border: `1px solid ${THEME.headerBg || "#64748B"}30`,
-                  color: THEME.headerBg || "#64748B",
-                  fontSize: 12,
-                  fontWeight: 700,
-                  marginBottom: 14,
-                  letterSpacing: "-0.01em",
-                }}
-              >
-                تطوير Kajo © {CURRENT_YEAR}
-              </div>
-
               {/* الشعار */}
               <div
                 style={{
@@ -1820,6 +1798,10 @@ function WelcomeScreen({ slug, onSubmit, installBannerProps, logoUrl: earlyLogoU
                   <div style={{ fontSize: 9.5, color: THEME.textSecondary || "#64748B" }}>{f.text}</div>
                 </div>
               ))}
+            </div>
+
+            <div style={{ textAlign: "center", fontSize: 10, color: THEME.textSecondary || "#94A3B8", opacity: 0.6, padding: "4px 0 2px" }}>
+              تطوير Kajo © {CURRENT_YEAR}
             </div>
 
           </div>
@@ -2084,7 +2066,7 @@ function OfflineBanner({ connectionState }) {
     <div
       style={{
         position: "fixed",
-        bottom: "calc(64px + env(safe-area-inset-bottom, 0px))",
+        bottom: "calc(100px + env(safe-area-inset-bottom, 0px))",
         left: 12,
         right: 12,
         zIndex: 60,
@@ -2110,7 +2092,7 @@ function OfflineBanner({ connectionState }) {
 // الكومنت جوا شاشة الشات) بتظهر بس لو عدّى ١٢ ساعة (نفس VISIT_WINDOW_HOURS
 // المستخدمة بالباك إند) من آخر مسح QR فعلي، وبتفتح ماسح QR داخل نفس
 // الصفحة (InChatQrScanner تحت) بدل ما يطلع العميل من التطبيق أصلاً
-const QR_REMINDER_WINDOW_MS = 3 * 60 * 1000; // ⚠️ مؤقت للتجربة - رجّعها لـ 12 * 60 * 60 * 1000 بعد ما تخلص
+const QR_REMINDER_WINDOW_MS = 12 * 60 * 60 * 1000;
 
 function QrRescanIcon({ visible, onClick }) {
   if (!visible) return null;
@@ -2328,27 +2310,6 @@ function IntroScreen({ name, establishmentName, logoUrl, onContinue, installBann
             animation: "fadeScaleIn 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
           }}
         >
-          {/* بادج "تطوير Kajo" - رفعناها لفوق البطاقة (قبل كانت سطر صغير
-              باهت بآخر الشاشة، ممكن يضيع تحت السكرول) عشان تكون واضحة
-              وظاهرة أول ما تفتح شاشة "أهلاً بكم" */}
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-              padding: "5px 12px",
-              borderRadius: 999,
-              background: `${darkGreen}12`,
-              border: `1px solid ${darkGreen}30`,
-              color: darkGreen,
-              fontSize: 12,
-              fontWeight: 700,
-              marginBottom: 14,
-              letterSpacing: "-0.01em",
-            }}
-          >
-            تطوير Kajo © {CURRENT_YEAR}
-          </div>
           <div
             style={{
               width: 72,
@@ -2441,6 +2402,10 @@ function IntroScreen({ name, establishmentName, logoUrl, onContinue, installBann
           >
             يلا نبدأ
           </button>
+        </div>
+
+        <div style={{ textAlign: "center", fontSize: 10, color: THEME.textSecondary || "#94A3B8", opacity: 0.6, padding: "10px 0 2px", width: "100%", maxWidth: 380 }}>
+          تطوير Kajo © {CURRENT_YEAR}
         </div>
       </div>
 
