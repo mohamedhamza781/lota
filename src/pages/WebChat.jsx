@@ -7,6 +7,15 @@ import { uploadWebChatMealPhoto, fetchWebChatAccount, fetchWebChatInfo, uploadWe
 import { queuePhotoForBackgroundSync } from "../utils/offlineUploadQueue";
 import PublicMenu from "./PublicMenu";
 
+// استرجاع chatId برقم الهاتف - لحالة PWA على iOS حيث localStorage منفصل عن المتصفح
+async function recoverAccountByPhone(slug, phone) {
+  const clean = phone.trim().replace(/[^\d+]/g, "");
+  const res = await fetch(`${API_ORIGIN}/api/web-chat/${slug}/recover?phone=${encodeURIComponent(clean)}`);
+  const json = await res.json();
+  if (!res.ok || !json?.data?.found) return null;
+  return json.data.chatId || null;
+}
+
 // لوحة الألوان الافتراضية - بتُستخدم بس لو المنشأة لسا ما حدّدت لون خاص
 // فيها (menuPrimaryColor فاضي)، أو لحد ما يوصل لون المنشأة الفعلي من
 // الباك إند. أي منشأة حدّدت لونها الخاص (من نفس منتقي اللون الموجود
@@ -2158,13 +2167,15 @@ function InChatQrScanner({ slug, onSuccess, onClose }) {
             let isValid = false;
             try {
               const url = new URL(decodedText);
-              isValid = url.pathname === `/chat/${slug}` && url.searchParams.get("src") === "qr";
+              // بنتحقق بس إنه الرابط تبع نفس هاد المحل - مش مهم يكون فيه ?src=qr
+              // لأنه العميل هو اللي فتح الماسح بنفسه، هاد كافي تأكيد إنه مسح فعلي
+              isValid = url.pathname === `/chat/${slug}`;
             } catch {
               isValid = false;
             }
 
             if (!isValid) {
-              setErrorText("هاد مش كود QR الخاص فينا - جرب تمسح الكود الموجود بالمحل مباشرة");
+              setErrorText("هاد مش QR الخاص بهاد المحل - وجّه الكاميرا على الكود الموجود بالمحل مباشرة");
               return;
             }
 
@@ -2568,8 +2579,19 @@ export default function WebChat() {
   // محدّد) صاير بالباك إند (isValidQrVisit بـwhatsapp.service.js) -
   // لو مش صحيح، البوت برد جوا نفس المحادثة "لازم تمسح QR..." بدل ما
   // نمنعه من الوصول لفورم التسجيل من الأساس.
+  // الشاشة الافتراضية: لو عنده chatId محفوظ من قبل → مباشرة للشات.
+  // لو PWA standalone ولا chatId → شاشة استرجاع خفيفة (برقم الهاتف)
+  // بدل فورم التسجيل الكامل - سبب: iOS يعزل localStorage بين
+  // المتصفح والتطبيق المثبّت (standalone)، عكس أندرويد اللي بيشاركهم.
+  const isStandaloneInit = Boolean(
+    window.matchMedia?.("(display-mode: standalone)")?.matches || window.navigator.standalone
+  );
   const [screen, setScreen] = useState(() => {
-    if (localStorage.getItem(storageKey)) return "chat";
+    try {
+      if (localStorage.getItem(storageKey)) return "chat";
+    } catch { /* تجاهل */ }
+    // PWA standalone بدون chatId → شاشة استرجاع
+    if (isStandaloneInit) return "recovering";
     return "welcome";
   });
   const [deliveryWhatsAppNumber, setDeliveryWhatsAppNumber] = useState("");
@@ -3416,6 +3438,24 @@ export default function WebChat() {
           logoUrl={establishment?.establishmentLogo || earlyInfo?.logoUrl}
           establishmentName={establishment?.establishmentName || earlyInfo?.name}
           externalError={registrationError}
+        />
+      </ThemeContext.Provider>
+    );
+  }
+
+  if (screen === "recovering") {
+    return (
+      <ThemeContext.Provider value={THEME}>
+        <AccountRecoveryScreen
+          slug={slug}
+          storageKey={storageKey}
+          logoUrl={establishment?.establishmentLogo || earlyInfo?.logoUrl}
+          establishmentName={establishment?.establishmentName || earlyInfo?.name}
+          onRecovered={(chatId) => {
+            try { localStorage.setItem(storageKey, chatId); } catch { /* تجاهل */ }
+            setScreen("chat");
+          }}
+          onNewUser={() => setScreen("welcome")}
         />
       </ThemeContext.Provider>
     );
