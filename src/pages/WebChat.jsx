@@ -1253,7 +1253,9 @@ function DeliveryView({ deliveryWhatsAppNumber, establishmentName, logoUrl }) {
             textAlign: "center",
           }}
         >
-          <DeliveryIcon />
+          {/* <DeliveryIcon /> */}
+          <DirectionsBikeOutlinedIcon/>
+          
           <p style={{ fontSize: 14, lineHeight: 1.9, color: THEME.textPrimary, margin: 0 }}>
             بدك توصيل؟ تواصل معنا مباشرة عالواتساب وخلّينا نجهّزلك طلبك.
           </p>
