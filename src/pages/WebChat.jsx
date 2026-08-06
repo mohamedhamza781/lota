@@ -155,6 +155,20 @@ function CameraIcon() {
   );
 }
 
+// شارة صغيرة (قلم) بتظهر بس لما يكون في صورة بروفايل مرفوعة أصلاً - بديل
+// عن شريط أيقونة الكاميرا يلي كان يغطي أسفل الصورة دايماً بغض النظر لو
+// في صورة أو لأ. الفكرة: لو ما في صورة، الكاميرا بنفسها (بنص الدائرة) هي
+// الدعوة لرفع أول صورة. لو في صورة، ما عاد داعي نغطيها - بس شارة صغيرة
+// على طرفها تقول "غيّرها"
+function EditPencilIcon() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    </svg>
+  );
+}
+
 function CheckDoubleIcon({ color }) {
   return (
     <svg width="16" height="11" viewBox="0 0 16 11" fill="none">
@@ -415,30 +429,65 @@ function AccountView({ slug, chatId }) {
             border: "none",
             padding: 0,
             cursor: "pointer",
-            overflow: "hidden",
             opacity: uploadingAvatar ? 0.6 : 1,
           }}
         >
-          {customer?.avatarUrl ? (
-            <img loading="lazy" src={resolveImageUrl(customer.avatarUrl)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-          ) : (
-            (customer?.name || "؟").trim().charAt(0)
-          )}
-          <span
-            style={{
-              position: "absolute",
-              bottom: 0,
-              left: 0,
-              right: 0,
-              background: "rgba(0,0,0,0.45)",
-              color: "#fff",
-              fontSize: 9,
-              textAlign: "center",
-              padding: "2px 0",
-            }}
-          >
-            <CameraIcon />
+          {/* غلاف داخلي بنفس أبعاد الزر - هو يلي بيقص الصورة دايرة (overflow hidden)،
+              مش الزر نفسه، عشان شارة القلم/الكاميرا تقدر تطلع برا حدوده شوي بدون ما تنقص */}
+          <span style={{ width: "100%", height: "100%", borderRadius: "50%", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            {customer?.avatarUrl ? (
+              <img loading="lazy" src={resolveImageUrl(customer.avatarUrl)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            ) : (
+              <span style={{ fontSize: 22 }}>{(customer?.name || "؟").trim().charAt(0)}</span>
+            )}
           </span>
+          {customer?.avatarUrl ? (
+            <>
+              {/* في صورة أصلاً - ما منغطيها، بس شارة قلم صغيرة على طرفها تدل إنه ممكن تتغيّر */}
+              <span
+                style={{
+                  position: "absolute",
+                  bottom: -2,
+                  left: -2,
+                  width: 20,
+                  height: 20,
+                  borderRadius: "50%",
+                  background: THEME.headerBg,
+                  color: "#fff",
+                  border: "2px solid #fff",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <EditPencilIcon />
+              </span>
+            </>
+          ) : (
+            <>
+              {/* ما في صورة لسا - شارة الكاميرا الصغيرة عالطرف هي دعوة الرفع (بدل الشريط اللي كان يغطي نص الدائرة) */}
+              <span
+                style={{
+                  position: "absolute",
+                  bottom: -2,
+                  left: -2,
+                  width: 20,
+                  height: 20,
+                  borderRadius: "50%",
+                  background: THEME.headerBg,
+                  color: "#fff",
+                  border: "2px solid #fff",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <span style={{ transform: "scale(0.72)", display: "flex" }}>
+                  <CameraIcon />
+                </span>
+              </span>
+            </>
+          )}
         </button>
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ fontWeight: 700, fontSize: 16, color: THEME.textPrimary, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
