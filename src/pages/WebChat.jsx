@@ -3161,7 +3161,26 @@ export default function WebChat() {
     // [Change 1] نضيف chatId لرابط manifest عشان start_url يحتويه ويحفظ
     // الجلسة لما العميل يفتح التطبيق المثبّت مرة تانية (خصوصاً iOS)
     const savedChatIdForManifest = (() => { try { return localStorage.getItem(storageKey); } catch { return null; } })();
-    link.href = `${API_ORIGIN}/api/web-chat/${slug}/manifest.json${savedChatIdForManifest ? `?cid=${encodeURIComponent(savedChatIdForManifest)}` : ''}`;
+
+    // 🩹 [Change 2] نضيف علامة "مسح QR" (qr=1) لرابط الـmanifest كمان لما
+    // تكون viaQr صحيحة حالياً - عشان start_url تبع الاختصار المثبّت يحمل
+    // ?src=qr من نفسه. هاد بيحل مشكلة آيفون تحديداً: تطبيقات "إضافة للشاشة
+    // الرئيسية" بتشتغل بحاوية تخزين (localStorage/sessionStorage) منفصلة
+    // كلياً عن Safari، فلو العميل مسح QR وثبّت الاختصار وفتحه فوراً (قبل ما
+    // يكمّل التسجيل من صفحة Safari نفسها)، إشارة viaQr المحفوظة بـSafari
+    // ما توصل للاختصار الجديد أبداً ويضل عالق ما يقدر يسجّل ("لازم تمسح
+    // رمز QR..." رغم إنه فعلياً مسحه قبل ثواني). بتضمينها هون، الإشارة
+    // بتنخبز مباشرة جوا start_url الاختصار نفسه، بغض النظر عن أي تخزين.
+    //
+    // ⚠️ آمنة تماماً حتى لو ضلّت محفوظة بالاختصار للأبد بعد التسجيل: هاي
+    // العلامة (src=qr) بتأثر بس على أول تسجيل (completeFirstVisitRegistration
+    // بـwhatsapp.service.js) - الزيارات المتكررة بعد التسجيل بتتطلب حصراً
+    // مسح QR جوا الشات نفسه (_viaQrRescan، شرط منفصل كلياً)، فما في أي خطر
+    // إساءة استخدام لتكرار احتساب زيارات.
+    const qrParam = viaQr ? "qr=1" : "";
+    const cidParam = savedChatIdForManifest ? `cid=${encodeURIComponent(savedChatIdForManifest)}` : "";
+    const manifestQuery = [qrParam, cidParam].filter(Boolean).join("&");
+    link.href = `${API_ORIGIN}/api/web-chat/${slug}/manifest.json${manifestQuery ? `?${manifestQuery}` : ''}`;
 
     let themeMeta = document.querySelector('meta[name="theme-color"]');
     if (!themeMeta) {
@@ -3174,7 +3193,7 @@ export default function WebChat() {
     // بنفس لون المنشأة (أحمر، أخضر...)، وطلب إزالته - هلق ثابت أبيض
     // بغض النظر عن لون المنشأة
     themeMeta.content = "#ffffff";
-  }, [slug]);
+  }, [slug, viaQr]);
 
   // وسوم آيفون (Safari) الخاصة - manifest.json + display:"standalone" مش
   // كافيين لوحدهم على iOS؛ سفاري بتتجاهلهم تماماً ولازم وسوم apple-* يدوية
