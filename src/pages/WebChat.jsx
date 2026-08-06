@@ -291,23 +291,10 @@ function formatDate(iso) {
 // شريط صغير بيظهر فوق أي تبويب عم يعرض نسخة محفوظة محلياً (مش بيانات
 // طازة من السيرفر) - عشان العميل يعرف إنه اللي قدامه ممكن يكون قديم شوي
 function StaleDataNotice() {
-  const THEME = useContext(ThemeContext);
-  return (
-    <div
-      style={{
-        textAlign: "center",
-        fontSize: 11.5,
-        fontWeight: 600,
-        color: THEME.textSecondary,
-        background: "rgba(255,255,255,0.9)",
-        borderBottom: `1px solid ${THEME.border}`,
-        padding: "7px 12px",
-        flexShrink: 0,
-      }}
-    >
-      ⚠️ لا يوجد اتصال بالإنترنت - عم تشوف آخر نسخة محفوظة
-    </div>
-  );
+  // 🩹 [إزالة] الشريط بطلب صريح - ما عاد يظهر إطلاقاً، بس خلّينا المكوّن
+  // وكل أماكن استخدامه (isStale && <StaleDataNotice />) زي ما هي عشان ما
+  // نضطر نلمس منطق الكاش نفسه، هون بس رجعنا null فما في أي واجهة تظهر
+  return null;
 }
 
 function AccountView({ slug, chatId }) {
@@ -2072,9 +2059,11 @@ function OfflineBanner({ connectionState, hasChatFooter }) {
         // فوق أيقونة الكاميرا/الإرسال) بدل ما يكون فوق شريط التبويبات
         // بالكامل زي باقي التبويبات. هلق منرفعه شوي أكتر لما يكون تبويب
         // الشات هو المفتوح عشان يضل فوق كل شي بالأسفل (الإدخال + الأيقونات)
+        // 🩹 [تعديل] رفعنا المسافة (كانت 100px) عشان الشريط ما يعود يغطّي
+        // على أيقونات شريط التبويبات السفلي + سطر "تطوير Kajo" تحتها
         bottom: hasChatFooter
           ? "calc(170px + env(safe-area-inset-bottom, 0px))"
-          : "calc(100px + env(safe-area-inset-bottom, 0px))",
+          : "calc(140px + env(safe-area-inset-bottom, 0px))",
         left: 12,
         right: 12,
         zIndex: 60,
@@ -2091,7 +2080,7 @@ function OfflineBanner({ connectionState, hasChatFooter }) {
       }}
     >
       <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#F59E0B", flexShrink: 0 }} />
-      لا يوجد اتصال بالإنترنت حالياً - بتقدر تتنقّل بين الشاشات، بس البيانات الجديدة ما رح تتحدّث لحد ما يرجع النت
+      لا يوجد اتصال بالانترنت حاليا
     </div>
   );
 }
