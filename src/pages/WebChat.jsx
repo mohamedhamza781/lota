@@ -1,4 +1,6 @@
 import QrCodeScannerIcon from "@mui/icons-material/QrCodeScanner";
+import ListOutlinedIcon from "@mui/icons-material/ListOutlined";
+import DirectionsBikeOutlinedIcon from "@mui/icons-material/DirectionsBikeOutlined";
 import { createContext, useContext, useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { io } from "socket.io-client";
@@ -3876,7 +3878,7 @@ export default function WebChat() {
             }}
           >
             <div style={{ textAlign: "center", fontSize: 12.5, color: THEME.textSecondary, background: THEME.bgChat, borderRadius: 14, padding: "10px 14px", lineHeight: 1.8, width: "100%" }}>
-              خلصت زيارتك الحالية 🎉 امسح رمز QR في المحل عشان تبلّش زيارة جديدة
+              نتمنى أن نراك قريبًا في {establishment?.establishmentName || earlyInfo?.name || "المحل"}، ولا تنسَ مسح رمز QR في زيارتك القادمة
             </div>
             <button
               onClick={() => setShowQrScanner(true)}
@@ -4016,10 +4018,10 @@ export default function WebChat() {
         {[
           { key: "home", label: "الرئيسية", icon: <HomeIcon size={21} strokeWidth={2} /> },
   { key: "chat", label: "الرسائل", icon: <ChatIcon size={21} strokeWidth={2} /> },
-  { key: "menu", label: "المنيو", icon: <MenuIcon size={21} strokeWidth={2} /> },
+  { key: "menu", label: "المنيو", icon: <ListOutlinedIcon style={{ fontSize: 21 }} /> },
   { key: "coupons", label: "الهدايا", icon: <TicketIcon size={21} strokeWidth={2} /> },
   { key: "account", label: "حسابي", icon: <PersonIcon size={21} strokeWidth={2} /> },
-  { key: "about", label: "ديلفري", icon: <DeliveryIcon size={21} strokeWidth={2} /> },
+  { key: "about", label: "ديلفري", icon: <DirectionsBikeOutlinedIcon style={{ fontSize: 21 }} /> },
         ].map((tab) => (
           <button
             key={tab.key}
