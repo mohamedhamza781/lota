@@ -181,17 +181,17 @@ function ArrowDownIcon() {
   );
 }
 
-function ChatIcon() {
+function ChatIcon({ size = 21, strokeWidth = 2 }) {
   return (
-    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
       <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
     </svg>
   );
 }
 
-function PersonIcon() {
+function PersonIcon({ size = 21, strokeWidth = 2 }) {
   return (
-    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
       <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
       <circle cx="12" cy="7" r="4" />
     </svg>
@@ -214,9 +214,9 @@ function StarIcon() {
   );
 }
 
-function TicketIcon() {
+function TicketIcon({ size = 18, strokeWidth = 1.8 }) {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
       <path d="M2 9a3 3 0 0 1 0 6v3a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1v-3a3 3 0 0 1 0-6V6a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1z" />
       <line x1="13" y1="5" x2="13" y2="19" strokeDasharray="3 3" />
     </svg>
@@ -261,17 +261,17 @@ function InfoIcon() {
   );
 }
 
-function MenuIcon() {
+function MenuIcon({ size = 21, strokeWidth = 2 }) {
   return (
-    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 3h6v6H3zM15 3h6v6h-6zM3 15h6v6H3zM15 15h6v6h-6z" />
     </svg>
   );
 }
 
-function HomeIcon() {
+function HomeIcon({ size = 21, strokeWidth = 2 }) {
   return (
-    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 11.5L12 4l9 7.5" />
       <path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9" />
     </svg>
@@ -1100,9 +1100,9 @@ function MenuCurtainReveal({ trigger, THEME, logoUrl, establishmentName, childre
 }
 
 // أيقونة دراجة/سكوتر توصيل - بدل شاحنة التوصيل القديمة
-function DeliveryIcon() {
+function DeliveryIcon({ size = 26, strokeWidth = 2 }) {
   return (
-    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
       <circle cx="5" cy="18" r="2.5" />
       <circle cx="18" cy="18" r="2.5" />
       <path d="M5 18h5.5l1.5-4h4" />
@@ -2032,7 +2032,7 @@ function InstalledAppHint({ isStandaloneNow }) {
 // دليل فعلي إنه ما في نت شغال حتى لو navigator.onLine قال العكس.
 const OFFLINE_SOCKET_GRACE_MS = 4000; // ما منستعجل نطلع الشريط لأول محاولة اتصال عادية أو انقطاع لحظي جداً
 
-function OfflineBanner({ connectionState }) {
+function OfflineBanner({ connectionState, hasChatFooter }) {
   const [networkOffline, setNetworkOffline] = useState(() => !navigator.onLine);
   const [socketOffline, setSocketOffline] = useState(false);
 
@@ -2066,7 +2066,15 @@ function OfflineBanner({ connectionState }) {
     <div
       style={{
         position: "fixed",
-        bottom: "calc(100px + env(safe-area-inset-bottom, 0px))",
+        // 🩹 [Change] لما تبويب الشات مفتوح، فيه شريط إدخال (footer) تحت
+        // منطقة المحادثة قبل شريط التبويبات السفلي (الأيقونات) - لو خلينا
+        // الرفع الثابت 100px بس، البانر كان عم يطلع فوق شريط الإدخال (يعني
+        // فوق أيقونة الكاميرا/الإرسال) بدل ما يكون فوق شريط التبويبات
+        // بالكامل زي باقي التبويبات. هلق منرفعه شوي أكتر لما يكون تبويب
+        // الشات هو المفتوح عشان يضل فوق كل شي بالأسفل (الإدخال + الأيقونات)
+        bottom: hasChatFooter
+          ? "calc(170px + env(safe-area-inset-bottom, 0px))"
+          : "calc(100px + env(safe-area-inset-bottom, 0px))",
         left: 12,
         right: 12,
         zIndex: 60,
@@ -2138,16 +2146,49 @@ function InChatQrScanner({ slug, onSuccess, onClose }) {
   const [errorText, setErrorText] = useState("");
   const scannerRef = useRef(null);
   const containerId = "wc-inchat-qr-reader";
+  // 🩹 [Fix] كنا عم نستدعي stop() مرتين على نفس الـ instance: مرة جوا
+  // onScanSuccess ومرة تانية بالـ cleanup لما onSuccess() يشيل الكومبوننت
+  // من الشجرة (setShowQrScanner(false) بالأب) - النداء التاني كان بيصير
+  // قبل ما الأول يخلص فعلياً، وده كان بيسيب الكاميرا "محجوزة" (busy) عند
+  // المتصفح، فبالمسحة الجاية start() كانت تعلق من غير resolve/reject →
+  // شاشة بيضاء دايمة بدون أي رسالة خطأ. هالـ ref بيضمن نداء وحيد فقط.
+  const stoppedRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
     let html5QrCode = null;
+    let startTimeoutId = null;
+
+    const safeStop = async () => {
+      if (stoppedRef.current || !scannerRef.current) return;
+      stoppedRef.current = true;
+      try {
+        await scannerRef.current.stop();
+      } catch {
+        // كانت أصلاً مو شغالة (مثلاً start() لسا ما خلصت) - تجاهل
+      }
+      try {
+        scannerRef.current.clear();
+      } catch {
+        // تجاهل
+      }
+    };
 
     import("html5-qrcode")
       .then(({ Html5Qrcode }) => {
         if (cancelled) return undefined;
         html5QrCode = new Html5Qrcode(containerId);
         scannerRef.current = html5QrCode;
+
+        // 🩹 [Fix] لو start() علقت (كاميرا محجوزة من جلسة سابقة، أو مشكلة
+        // بالجهاز) من غير ما ترجع resolve ولا reject، من غير هالـ timeout
+        // كانت الشاشة تضل عالقة على "starting" (يعني بيضاء تقريباً) للأبد
+        startTimeoutId = setTimeout(() => {
+          if (!cancelled) {
+            setStatus("error");
+            setErrorText("الكاميرا ما استجابت - سكّر وحاول تفتح الماسح من جديد");
+          }
+        }, 8000);
 
         return html5QrCode.start(
           { facingMode: "environment" },
@@ -2169,10 +2210,8 @@ function InChatQrScanner({ slug, onSuccess, onClose }) {
             }
 
             cancelled = true;
-            html5QrCode
-              .stop()
-              .catch(() => {})
-              .finally(() => onSuccess());
+            clearTimeout(startTimeoutId);
+            safeStop().finally(() => onSuccess());
           },
           () => {
             // فريم ما لقى فيه كود - عادي جداً وبيصير كل فريم، مش خطأ
@@ -2181,9 +2220,11 @@ function InChatQrScanner({ slug, onSuccess, onClose }) {
         );
       })
       .then(() => {
+        clearTimeout(startTimeoutId);
         if (!cancelled) setStatus("scanning");
       })
       .catch((err) => {
+        clearTimeout(startTimeoutId);
         if (cancelled) return;
         setStatus("error");
         setErrorText(
@@ -2195,18 +2236,8 @@ function InChatQrScanner({ slug, onSuccess, onClose }) {
 
     return () => {
       cancelled = true;
-      if (scannerRef.current) {
-        scannerRef.current
-          .stop()
-          .catch(() => {})
-          .finally(() => {
-            try {
-              scannerRef.current?.clear?.();
-            } catch {
-              // تجاهل
-            }
-          });
-      }
+      clearTimeout(startTimeoutId);
+      safeStop();
     };
   }, [slug, onSuccess]);
 
@@ -3496,12 +3527,12 @@ export default function WebChat() {
     >
       <InstallBanner {...installBannerProps} establishmentName={establishment?.establishmentName} />
       <InstalledAppHint isStandaloneNow={isStandaloneNow} />
-      <OfflineBanner connectionState={connectionState} />
+      <OfflineBanner connectionState={connectionState} hasChatFooter={activeTab === "chat"} />
       {storageUnavailable && (
         <div
           style={{
             position: "fixed",
-            top: isOfflineFallback ? "calc(env(safe-area-inset-top, 0px) + 48px)" : "calc(env(safe-area-inset-top, 0px) + 8px)",
+            top: "calc(env(safe-area-inset-top, 0px) + 8px)",
             left: 12,
             right: 12,
             zIndex: 60,
@@ -3518,27 +3549,11 @@ export default function WebChat() {
           ⚠️ متصفحك بوضع تصفح خاص - ميزة "حفظ الرسائل تلقائياً عند انقطاع النت" مش شغالة هلق. لا تسكر الصفحة وانت أوفلاين.
         </div>
       )}
-      {isOfflineFallback && (
-        <div
-          style={{
-            position: "fixed",
-            top: "calc(env(safe-area-inset-top, 0px) + 8px)",
-            left: 12,
-            right: 12,
-            zIndex: 60,
-            textAlign: "center",
-            fontSize: 12.5,
-            fontWeight: 600,
-            color: "#fff",
-            background: "rgba(15, 23, 42, 0.88)",
-            backdropFilter: "blur(6px)",
-            borderRadius: 12,
-            padding: "8px 14px",
-          }}
-        >
-          أنت غير متصل حالياً — هاي آخر نسخة محفوظة من محادثتك. أي رسالة بترسلها هلق رح تنبعت تلقائياً أول ما يرجع النت.
-        </div>
-      )}
+      {/* 🩹 [Change] رسالة "أنت غير متصل حالياً - هاي آخر نسخة محفوظة" اتشالت
+          من الواجهة بناءً على طلب صريح (مزعجة للعميل) - بس isOfflineFallback
+          نفسها ضلت زي ما هي وبتشتغل عادي (شوف setIsOfflineFallback فوق):
+          لسا بيتم تحميل آخر نسخة محفوظة من المحادثة محلياً لما يفشل الاتصال،
+          بس من غير ما نعرض أي بانر/نص للعميل عن هالشي. */}
       {/* تذكير مسح QR بعد ١٢ ساعة كان نص/بانر بالسابق واتشال بناءً على طلب
           صريح (كان مزعج). هلق بدله أيقونة صغيرة بالهيدر (QrRescanIcon) بس -
           بتفتح كاميرا داخل نفس الصفحة (InChatQrScanner) فيها العميل يمسح
@@ -3615,8 +3630,8 @@ export default function WebChat() {
         <>
           {usingCachedInfo && <StaleDataNotice />}
           <HomeView
-            logoUrl={establishment?.establishmentLogo}
-            establishmentName={establishment?.establishmentName}
+            logoUrl={establishment?.establishmentLogo || earlyInfo?.logoUrl}
+            establishmentName={establishment?.establishmentName || earlyInfo?.name}
             promoText={promoText}
             promotions={promotions}
           />
@@ -3983,13 +3998,20 @@ export default function WebChat() {
           paddingBottom: "env(safe-area-inset-bottom, 0px)",
         }}
       >
+        {/* حجم ووزن الخط (strokeWidth) موحّد صراحة لكل الأيقونات الست هون
+            - كل أيقونة إلها حجم افتراضي مختلف شوي بأماكن استخدامها التانية
+            بالصفحة (شوف تعريف كل واحدة فوق)، فـsize={21} strokeWidth={2}
+            هون بيلغي/يوحّد هاد الاختلاف تحديداً بالشريط السفلي بس، بدون ما
+            يأثر على شكلها بباقي الصفحة. (fontSize="medium" اللي كانت
+            موجودة قبل هيك ما كانت بتعمل شي أصلاً - مكوّنات SVG مخصصة مش
+            بتستقبل هاد الـprop) */}
         {[
-          { key: "home", label: "الرئيسية", icon: <HomeIcon fontSize="medium" /> },
-  { key: "chat", label: "الرسائل", icon: <ChatIcon fontSize="medium" /> },
-  { key: "menu", label: "المنيو", icon: <MenuIcon fontSize="medium" /> },
-  { key: "coupons", label: "الهدايا", icon: <TicketIcon fontSize="medium" /> },
-  { key: "account", label: "حسابي", icon: <PersonIcon fontSize="medium" /> },
-  { key: "about", label: "ديلفري", icon: <DeliveryIcon fontSize="medium" /> },
+          { key: "home", label: "الرئيسية", icon: <HomeIcon size={21} strokeWidth={2} /> },
+  { key: "chat", label: "الرسائل", icon: <ChatIcon size={21} strokeWidth={2} /> },
+  { key: "menu", label: "المنيو", icon: <MenuIcon size={21} strokeWidth={2} /> },
+  { key: "coupons", label: "الهدايا", icon: <TicketIcon size={21} strokeWidth={2} /> },
+  { key: "account", label: "حسابي", icon: <PersonIcon size={21} strokeWidth={2} /> },
+  { key: "about", label: "ديلفري", icon: <DeliveryIcon size={21} strokeWidth={2} /> },
         ].map((tab) => (
           <button
             key={tab.key}
