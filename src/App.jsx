@@ -22,6 +22,8 @@ const RFM = lazy(() => import("./pages/RFM"));
 const Points = lazy(() => import("./pages/Points"));
 const Analytics = lazy(() => import("./pages/Analytics"));
 const CustomerFollowUps = lazy(() => import("./pages/CustomerFollowUps"));
+const Visits = lazy(() => import("./pages/Visits"));
+const Conversations = lazy(() => import("./pages/Conversations"));
 const Branches = lazy(() => import("./pages/Branches"));
 const Coupons = lazy(() => import("./pages/Coupons"));
 const Promotions = lazy(() => import("./pages/Promotions"));
@@ -159,6 +161,22 @@ export default function App() {
           element={
             <ProtectedRoute role="super_admin">
               <CustomerFollowUps />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="visits"
+          element={
+            <ProtectedRoute role="super_admin">
+              <Visits />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="conversations"
+          element={
+            <ProtectedRoute role="super_admin">
+              <Conversations />
             </ProtectedRoute>
           }
         />

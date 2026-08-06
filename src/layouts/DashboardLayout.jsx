@@ -34,6 +34,8 @@ import RestaurantMenuRoundedIcon from "@mui/icons-material/RestaurantMenuRounded
 import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
 import InsightsRoundedIcon from "@mui/icons-material/InsightsRounded";
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
+import HistoryRoundedIcon from "@mui/icons-material/HistoryRounded";
+import ChatBubbleOutlineRoundedIcon from "@mui/icons-material/ChatBubbleOutlineRounded";
 import { useState, useEffect } from "react";
 import { useTheme } from "@mui/material/styles";
 import { tokens } from "../theme/theme";
@@ -80,6 +82,8 @@ export default function DashboardLayout() {
     { to: `${base}/customers`, label: "العملاء", icon: PeopleAltRoundedIcon, superAdminOnly: true },
     { to: `${base}/whatsapp`, label: "بوت واتساب", icon: WhatsAppIcon, superAdminOnly: true },
     { to: `${base}/followups`, label: "متابعة العملاء", icon: ReceiptLongRoundedIcon, superAdminOnly: true },
+    { to: `${base}/visits`, label: "الزيارات", icon: HistoryRoundedIcon, superAdminOnly: true },
+    { to: `${base}/conversations`, label: "المحادثات", icon: ChatBubbleOutlineRoundedIcon, superAdminOnly: true },
     { to: `${base}/analytics`, label: "تحليلات", icon: InsightsRoundedIcon, superAdminOnly: true },
     { to: `${base}/rfm`, label: "تحليل RFM", icon: DonutLargeRoundedIcon, superAdminOnly: true },
     { to: `${base}/points`, label: "النقاط", icon: LocalActivityRoundedIcon },
