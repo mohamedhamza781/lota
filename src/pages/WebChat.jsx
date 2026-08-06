@@ -404,6 +404,26 @@ function AccountView({ slug, chatId }) {
 
   const { customer, profile, photos } = data;
 
+  // [وجباتي المفضلة] كانت الشاشة قبل هيك بتعرض صف مستقل لكل صورة وجبة
+  // مرفوعة (فبنفس الوجبة كانت بتتكرر أكتر من مرة، كل مرة بنجمة النقاط
+  // المكتسبة منها). هلق منجمّع حسب اسم الوجبة، وبدل النجمة/النقاط
+  // منعرض عدد مرات طلب/رفع نفس الوجبة (كاونتر بيزيد كل ما تتكرر)
+  const favoriteMeals = (() => {
+    const map = new Map();
+    (photos || []).forEach((p) => {
+      const name = p.mealName || "وجبة غير مسمّاة";
+      const existing = map.get(name);
+      if (existing) {
+        existing.count += 1;
+        if (new Date(p.createdAt) > new Date(existing.lastCreatedAt)) existing.lastCreatedAt = p.createdAt;
+      } else {
+        map.set(name, { mealName: name, count: 1, lastCreatedAt: p.createdAt });
+      }
+    });
+    // الأحدث تكراراً/طلباً أول
+    return Array.from(map.values()).sort((a, b) => b.count - a.count || new Date(b.lastCreatedAt) - new Date(a.lastCreatedAt));
+  })();
+
   return (
     <div className="wc-scroll" style={{ flex: 1, overflowY: "auto", padding: "18px 16px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
       {isStale && <StaleDataNotice />}      {/* بطاقة العميل */}
@@ -540,6 +560,10 @@ function AccountView({ slug, chatId }) {
         <div style={{ fontSize: 12.5, opacity: 0.8, marginTop: 2 }}>رصيدك الحالي</div>
         <div style={{ display: "flex", gap: 18, marginTop: 14, paddingTop: 14, borderTop: "1px solid rgba(255,255,255,0.15)" }}>
           <div>
+            <div style={{ fontSize: 16, fontWeight: 700 }}>{(profile?.lastVisitPoints ?? 0).toLocaleString("ar")}</div>
+            <div style={{ fontSize: 11.5, opacity: 0.8 }}>نقاط آخر زيارة</div>
+          </div>
+          <div>
             <div style={{ fontSize: 16, fontWeight: 700 }}>{(profile?.totalPointsEarned ?? 0).toLocaleString("ar")}</div>
             <div style={{ fontSize: 11.5, opacity: 0.8 }}>مجموع النقاط المكتسبة</div>
           </div>
@@ -558,11 +582,11 @@ function AccountView({ slug, chatId }) {
             لسا ما رفعت أي صورة
           </div>
         )}
-        {/* [Change 4] نعرض أسماء الوجبات فقط (بدون صور) بقائمة نصية */}
+        {/* كل وجبة مرة وحدة، وجنبها عدد مرات طلبها/رفعها (كاونتر) بدل نجمة النقاط */}
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {(photos || []).map((p) => (
+          {favoriteMeals.map((m) => (
             <div
-              key={p.id}
+              key={m.mealName}
               style={{
                 display: "flex",
                 justifyContent: "space-between",
@@ -574,13 +598,21 @@ function AccountView({ slug, chatId }) {
               }}
             >
               <span style={{ fontSize: 13.5, color: THEME.textPrimary, fontWeight: 600 }}>
-                {p.mealName || "وجبة غير مسمّاة"}
+                {m.mealName}
               </span>
-              {p.pointsAwarded > 0 && (
-                <span style={{ fontSize: 11, color: THEME.accent, fontWeight: 700, display: "flex", alignItems: "center", gap: 3 }}>
-                  <StarIcon /> {p.pointsAwarded}
-                </span>
-              )}
+              <span
+                style={{
+                  fontSize: 11.5,
+                  color: THEME.accent,
+                  fontWeight: 700,
+                  background: `${THEME.accent}14`,
+                  borderRadius: 8,
+                  padding: "2px 9px",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                طُلبت {m.count.toLocaleString("ar")} {m.count === 1 ? "مرة" : "مرات"}
+              </span>
             </div>
           ))}
         </div>
