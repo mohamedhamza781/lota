@@ -81,20 +81,23 @@ export default function DashboardLayout() {
     { to: `${base}/conversations`, label: "المحادثات", icon: ChatBubbleOutlineRoundedIcon, superAdminOnly: true },
     { to: `${base}/analytics`, label: "تحليلات", icon: InsightsRoundedIcon, superAdminOnly: true },
     { to: `${base}/rfm`, label: "تحليل RFM", icon: DonutLargeRoundedIcon, superAdminOnly: true },
-    { to: `${base}/points`, label: "النقاط", icon: LocalActivityRoundedIcon },
+    { to: `${base}/points`, label: "النقاط", icon: LocalActivityRoundedIcon, superAdminOnly: true },
     { to: `${base}/coupons`, label: "الهدايا", icon: RedeemRoundedIcon },
     { to: `${base}/promotions`, label: "الإعلانات والعروض", icon: CampaignRoundedIcon },
     { to: `${base}/referrals`, label: "الإحالة", icon: ShareRoundedIcon, superAdminOnly: true },
-    { to: `${base}/notifications`, label: "الإشعارات", icon: NotificationsActiveRoundedIcon },
+    { to: `${base}/notifications`, label: "الإشعارات", icon: NotificationsActiveRoundedIcon, superAdminOnly: true },
     { to: `${base}/branches`, label: "الفروع", icon: StorefrontRoundedIcon },
-    { to: `${base}/manual-whatsapp`, label: "رقم التواصل اليدوي", icon: WhatsAppIcon },
+    { to: `${base}/manual-whatsapp`, label: "رقم التواصل اليدوي", icon: WhatsAppIcon, superAdminOnly: true },
   ];
 
-  // أدمن المنشأة (establishment_admin) بيشوف بس ٦ صفحات تشغيلية أساسية:
-  // نظرة عامة + المنيو + النقاط + الكوبونات + الإشعارات + الفروع.
-  // باقي الصفحات (العملاء/بوت واتساب/متابعة العملاء/تحليلات/RFM/الإحالة)
-  // محصورة بسوبر أدمن بس - نفس القيد مطبّق كمان على مستوى الراوتينج
-  // بـ App.jsx (ProtectedRoute) عشان ما ينفتح حتى لو دخل بالرابط مباشرة.
+  // أدمن المنشأة (establishment_admin) بيشوف بس ٥ صفحات تشغيلية أساسية:
+  // نظرة عامة + المنيو + الإعلانات والعروض + الفروع + الهدايا.
+  // باقي الصفحات (العملاء/بوت واتساب/متابعة العملاء/تحليلات/RFM/الإحالة/
+  // النقاط/الإشعارات/رقم التواصل اليدوي) محصورة بسوبر أدمن بس فقط على
+  // مستوى الشريط الجانبي هون - لسا مو مقفولة على مستوى الراوتينج بـ
+  // App.jsx (ProtectedRoute)، يعني لو أدمن المنشأة دخل الرابط مباشرة
+  // (points/notifications/manual-whatsapp تحديداً) بيقدر يوصلها. لو بدك
+  // نفس القيد على مستوى الراوتينج كمان (متل customers/whatsapp/rfm...) قلي.
   const NAV_ITEMS = isSuperAdmin ? ALL_NAV_ITEMS : ALL_NAV_ITEMS.filter((item) => !item.superAdminOnly);
 
   const activeItem = NAV_ITEMS.find((i) => (i.end ? location.pathname === i.to : location.pathname.startsWith(i.to)));
