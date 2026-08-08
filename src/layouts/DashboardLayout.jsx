@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useLocation, useParams, useNavigate, Link as RouterLink } from "react-router-dom";
+import { Outlet, useLocation, useParams, useNavigate } from "react-router-dom";
 import {
   Box,
   Drawer,
@@ -253,12 +253,18 @@ export default function DashboardLayout() {
                 كاملة) - شعار الشركة ما ينحشرش تحت شريط الحالة */}
             <Toolbar sx={{ px: 3, pt: "env(safe-area-inset-top, 0px)" }}>
               <Stack
-                component={isSuperAdmin ? RouterLink : "div"}
-                to={isSuperAdmin ? "/" : undefined}
                 direction="row"
                 spacing={1.5}
                 alignItems="center"
-                sx={{ textDecoration: "none", color: "inherit" }}
+                onClick={
+                  isSuperAdmin
+                    ? () => {
+                        setMobileOpen(false);
+                        navigate("/");
+                      }
+                    : undefined
+                }
+                sx={{ textDecoration: "none", color: "inherit", cursor: isSuperAdmin ? "pointer" : "default" }}
               >
                 <KajoMark height={30} inverted />
               </Stack>
@@ -266,15 +272,23 @@ export default function DashboardLayout() {
 
             {isSuperAdmin && (
               <Stack
-                component={RouterLink}
-                to="/"
                 direction="row"
                 spacing={0.75}
                 alignItems="center"
-                onClick={() => setMobileOpen(false)}
+                // 🩹 [إصلاح جذري نهائي] ما عاد معتمدين على RouterLink/NavLink
+                // لتنفيذ التنقل - صرنا ننده navigate() يدوياً و setMobileOpen(false)
+                // بنفس الدالة المتزامنة (onClick واحد، بالترتيب: نسكر الدرج
+                // أول، وبعدها ننتقل). هيك ما في أي سباق ممكن بين "حدث
+                // كليك/تاتش React Router الداخلي" و"إغلاق الـModal" - الاثنين
+                // منفذين يدوياً وبالترتيب المضمون نفسه، مهما كان الجهاز/المتصفح.
+                onClick={() => {
+                  setMobileOpen(false);
+                  navigate("/");
+                }}
                 sx={{
                   mx: 3,
                   mb: 1.5,
+                  cursor: "pointer",
                   textDecoration: "none",
                   color: "rgba(250,250,247,0.5)",
                   fontSize: "0.75rem",
@@ -290,63 +304,64 @@ export default function DashboardLayout() {
             <Divider sx={{ borderColor: "rgba(250,250,247,0.08)" }} />
 
             <List sx={{ px: 2, py: 2.5 }}>
-              {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
-                <ListItemButton
-                  key={to}
-                  component={NavLink}
-                  to={to}
-                  end={end}
-                  onClick={() => setMobileOpen(false)}
-                  sx={{
-                    borderRadius: "14px",
-                    mb: 0.8,
-                    px: 2,
-                    py: 1,
-                    color: "rgba(250,250,247,0.68)",
-                    transition: "all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1)",
-                    "& .MuiListItemIcon-root": {
-                      color: "rgba(250,250,247,0.45)",
-                      minWidth: 36,
-                      transition: "all 0.25s ease",
-                    },
-                    "&:hover": {
-                      backgroundColor: "rgba(250,250,247,0.06)",
-                      color: tokens.paper,
-                      transform: "translateX(4px)",
+              {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => {
+                const isActive = end ? location.pathname === to : location.pathname.startsWith(to);
+                return (
+                  <ListItemButton
+                    key={to}
+                    // 🩹 [إصلاح جذري نهائي] نفس المبدأ فوق: بدل ما نعتمد على
+                    // component={NavLink} (يلي إله سلوك لمس/كليك داخلي خاص فيه
+                    // بمكتبة react-router، ولوحظ إنه ممكن ينفّذ التنقل قبل ما
+                    // onClick يوصل يشتغل على بعض أجهزة الأندرويد الحقيقية - وهو
+                    // بالضبط سبب بقاء الدرج مفتوح رغم التنقل)، منفّذ التنقل
+                    // والإغلاق يدوياً بنفس onClick واحد متزامن. الحالة "active"
+                    // (تلوين العنصر الحالي) صارت محسوبة يدوياً فوق بدل ما تعتمد
+                    // على كلاس ".active" التلقائي من NavLink.
+                    onClick={() => {
+                      setMobileOpen(false);
+                      navigate(to);
+                    }}
+                    sx={{
+                      borderRadius: "14px",
+                      mb: 0.8,
+                      px: 2,
+                      py: 1,
+                      color: isActive ? tokens.ink : "rgba(250,250,247,0.68)",
+                      backgroundColor: isActive ? tokens.paper : "transparent",
+                      fontWeight: isActive ? 800 : 400,
+                      boxShadow: isActive ? "0px 8px 20px rgba(0, 0, 0, 0.15)" : "none",
+                      transition: "all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1)",
                       "& .MuiListItemIcon-root": {
-                        color: tokens.paper,
-                        transform: "scale(1.1)",
-                      },
-                    },
-                    "&.active": {
-                      backgroundColor: tokens.paper,
-                      color: tokens.ink,
-                      fontWeight: 800,
-                      boxShadow: "0px 8px 20px rgba(0, 0, 0, 0.15)",
-                      "& .MuiListItemIcon-root": {
-                        color: tokens.ink,
+                        color: isActive ? tokens.ink : "rgba(250,250,247,0.45)",
+                        minWidth: 36,
+                        transition: "all 0.25s ease",
                       },
                       "&:hover": {
-                        transform: "none",
-                        backgroundColor: tokens.paper,
+                        backgroundColor: isActive ? tokens.paper : "rgba(250,250,247,0.06)",
+                        color: isActive ? tokens.ink : tokens.paper,
+                        transform: isActive ? "none" : "translateX(4px)",
+                        "& .MuiListItemIcon-root": {
+                          color: isActive ? tokens.ink : tokens.paper,
+                          transform: isActive ? "none" : "scale(1.1)",
+                        },
                       },
-                    },
-                  }}
-                >
-                  <ListItemIcon>
-                    <Icon fontSize="small" />
-                  </ListItemIcon>
-                  <ListItemText
-                    primaryTypographyProps={{
-                      fontSize: "0.86rem",
-                      fontWeight: 700,
-                      fontFamily: '"IBM Plex Sans Arabic"',
                     }}
                   >
-                    {label}
-                  </ListItemText>
-                </ListItemButton>
-              ))}
+                    <ListItemIcon>
+                      <Icon fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText
+                      primaryTypographyProps={{
+                        fontSize: "0.86rem",
+                        fontWeight: 700,
+                        fontFamily: '"IBM Plex Sans Arabic"',
+                      }}
+                    >
+                      {label}
+                    </ListItemText>
+                  </ListItemButton>
+                );
+              })}
             </List>
           </>
         );
