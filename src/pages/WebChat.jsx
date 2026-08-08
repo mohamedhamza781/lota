@@ -1448,7 +1448,14 @@ function NeedQrScreen({ slug }) {
 
 function WelcomeScreen({ slug, onSubmit, installBannerProps, logoUrl: earlyLogoUrl, establishmentName: earlyEstablishmentName, externalError }) {
   const THEME = useContext(ThemeContext);
-  const [info, setInfo] = useState(null);
+  // منبدأ بالبيانات المحفوظة محلياً (earlyLogoUrl/earlyEstablishmentName -
+  // جاية من كاش الصفحة الأم) بدل null، عشان الشعار يبين فوراً من أول
+  // فريم بدل ما يضل فاضي لحد ما يوصل رد الـfetch تحت
+  const [info, setInfo] = useState(() => ({
+    name: earlyEstablishmentName || "",
+    logoUrl: earlyLogoUrl || null,
+    aboutText: "",
+  }));
   const [loadingInfo, setLoadingInfo] = useState(true);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -1466,7 +1473,17 @@ function WelcomeScreen({ slug, onSubmit, installBannerProps, logoUrl: earlyLogoU
         if (!cancelled) setInfo(data);
       })
       .catch(() => {
-        if (!cancelled) setInfo({ name: "", logoUrl: null, aboutText: "" });
+        // فشل الطلب (غالباً انقطاع نت) - قبل هالإصلاح كنا منصفّر الشعار
+        // لـnull هون، فيختفي حتى لو كان أصلاً محفوظ محلياً من زيارة سابقة.
+        // هلق منرجع لنفس البيانات المحفوظة (earlyLogoUrl/earlyEstablishmentName)
+        // بدل ما نمسحها، عشان الشعار يضل ظاهر حتى بدون نت
+        if (!cancelled) {
+          setInfo({
+            name: earlyEstablishmentName || "",
+            logoUrl: earlyLogoUrl || null,
+            aboutText: "",
+          });
+        }
       })
       .finally(() => {
         if (!cancelled) setLoadingInfo(false);
@@ -1474,7 +1491,7 @@ function WelcomeScreen({ slug, onSubmit, installBannerProps, logoUrl: earlyLogoU
     return () => {
       cancelled = true;
     };
-  }, [slug]);
+  }, [slug, earlyLogoUrl, earlyEstablishmentName]);
 
   function handleSubmit(e) {
     e.preventDefault();

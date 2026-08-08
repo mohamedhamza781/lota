@@ -338,7 +338,7 @@ export default function PublicMenu({ slugProp, hideDialog = false } = {}) {
           <Marquee items={categories.map((c) => c.name)} />
           <Footer
             brandName={establishment.name}
-            categories={categories.map((c) => c.name)}
+            categories={categories.map((c) => ({ id: c.id, label: c.name }))}
             city={establishment.city}
             address={establishment.address}
             hours={establishment.footerConfig?.hours}

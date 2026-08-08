@@ -11,17 +11,23 @@ import MapCard from "./MapCard";
 
 const SECTION_IDS = { المنيو: "menu", الفروع: "locations", "من نحن": "about" };
 
+// links ممكن تكون مصفوفة نصوص عادية (زي "المنيو"، "الفروع" - بتتحل عن
+// طريق SECTION_IDS الثابت فوق)، أو مصفوفة كائنات { id, label } (زي
+// أقسام المنيو الفعلية - كل قسم إله id حقيقي جاي من الباك إند، فبنستخدمه
+// هو مباشرة بدل ما نحاول نخمّنه من الاسم).
 function FooterCol({ title, links }) {
   return (
     <>
       <Typography sx={{ opacity: 0.7, mb: 1 }}>{title}</Typography>
       <Stack spacing={0.5}>
         {links.map((l) => {
-          const sectionId = SECTION_IDS[l];
+          const isObject = typeof l === "object" && l !== null;
+          const label = isObject ? l.label : l;
+          const sectionId = isObject ? l.id : SECTION_IDS[l];
           return (
             <Link
-              key={l}
-              href="#"
+              key={isObject ? l.id : l}
+              href={sectionId ? `#${sectionId}` : "#"}
               underline="hover"
               color="inherit"
               onClick={(e) => {
@@ -30,7 +36,7 @@ function FooterCol({ title, links }) {
                 scrollToSection(sectionId);
               }}
             >
-              {l}
+              {label}
             </Link>
           );
         })}
@@ -50,7 +56,11 @@ function InfoRow({ icon: Icon, text }) {
 
 export default function Footer({
   brandName = "المنشأة",
-  categories = ["قهوة", "مشروبات باردة", "مخبوزات"],
+  categories = [
+    { id: "menu", label: "قهوة" },
+    { id: "menu", label: "مشروبات باردة" },
+    { id: "menu", label: "مخبوزات" },
+  ],
   city,
   address,
   hours,
@@ -126,7 +136,19 @@ export default function Footer({
         </Grid>
         <Typography sx={{ fontFamily: '"IBM Plex Sans Arabic"', fontWeight: 800, textAlign: "center", fontSize: { xs: 60, md: 160 }, lineHeight: 1, mt: 6 }}>{brandName}</Typography>
         <Stack direction="row" justifyContent="space-between" mt={2} sx={{ opacity: 0.7, fontSize: 12 }}>
-          <span>{brandName} © ٢٠٢٦</span><span>↑ ارجع لفوق</span>
+          <span>{brandName} © ٢٠٢٦</span>
+          <Link
+            href="#"
+            underline="hover"
+            color="inherit"
+            onClick={(e) => {
+              e.preventDefault();
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+            sx={{ cursor: "pointer" }}
+          >
+            ↑ ارجع لفوق
+          </Link>
         </Stack>
       </Box>
     </Box>
