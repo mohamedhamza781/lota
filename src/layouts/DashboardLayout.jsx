@@ -61,39 +61,15 @@ export default function DashboardLayout() {
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // 🩹 باگ معروف بمكتبة MUI: درج القائمة الجانبية بالجوال (Drawer تحت)
-  // مضبوط ModalProps={{ keepMounted: true }}، وعناصره بتسكر الدرج
-  // (setMobileOpen(false)) وبتنقل لصفحة جديدة (NavLink) بنفس الضغطة.
-  // لما الاثنين (تسكير الدرج + تغيير الراوت) بيصيروا سوا، أحياناً
-  // ModalManager تبع MUI ما بينظّف قفل السكرول (overflow:hidden +
-  // padding-right) يلي بيحطه على body لما يفتح أي Dialog/Drawer -
-  // فبتضل الصفحة الجديدة "مقفولة" (ما بتقبل ضغط ولا سكرول) لحد ما
-  // تعمل رفرش يدوي. هاد إصلاح دفاعي: كل ما يتغير الراوت (يعني كل
-  // تنقل ناجح)، منتأكد إنه body مو عالق بقفل قديم ومنحرره بالقوة.
-  //
-  // 🩹 [إضافة] نفس الباگ كمان ممكن يخلي عنصر الـ Backdrop نفسه (الطبقة
-  // الرمادية الشفافة يلي بتغطي كامل الصفحة وتمنع أي ضغط) عالق بالـ DOM
-  // بعد ما يتقفل الدرج - لأنه الـ transition الخاص فيه (fade out) بينقطع
-  // بمنتصف تنفيذه لما route يتغير بنفس اللحظة بالضبط. تنظيف أنماط body
-  // لوحده ما كان كافي بهاي الحالة (هيك كانت الصورة يلي أرسلها المستخدم:
-  // طبقة رمادية عالقة فوق صفحة المنيو، من غير أي درج مفتوح فعليًا).
-  // فمنتأكد كمان إنه mobileOpen مقفول، ومنشيل بالقوة أي Backdrop عالق
-  // بالـ DOM (keepMounted: true يخلّيه موجود بالـ DOM دايمًا، فمجرد ما
-  // يفضل opacity عالق على 1 كافي يمنع الضغط حتى لو مش ظاهر بوضوح).
+  // 🩹 شبكة أمان إضافية (خفيفة): حتى بعد إصلاح السبب الجذري فوق (شوف
+  // ModalProps/transitionDuration بالدرج تحت)، منضل نتأكد كل ما يتغير
+  // الراوت إنه body مو عالق بقفل سكرول قديم (overflow/padding-right) من
+  // أي Dialog/Drawer تاني بالتطبيق - ما إلها تكلفة، وبتحمي من حالات مشابهة.
   useEffect(() => {
     document.body.style.removeProperty("overflow");
     document.body.style.removeProperty("padding-right");
     document.body.style.removeProperty("pointer-events");
-    setMobileOpen(false);
-
-    document.querySelectorAll(".MuiBackdrop-root").forEach((el) => {
-      const isDrawerOpen = el.closest(".MuiModal-root")?.classList.contains("MuiModal-hidden") === false;
-      if (!isDrawerOpen || !isMobile) {
-        el.style.opacity = "0";
-        el.style.pointerEvents = "none";
-      }
-    });
-  }, [location.pathname, isMobile]);
+  }, [location.pathname]);
 
   const ALL_NAV_ITEMS = [
     { to: base, label: "نظرة عامة", icon: SpaceDashboardRoundedIcon, end: true },
@@ -380,7 +356,17 @@ export default function DashboardLayout() {
               anchor="left"
               open={isMobile && mobileOpen}
               onClose={() => setMobileOpen(false)}
-              ModalProps={{ keepMounted: true }}
+              // 🩹 [إصلاح جذري] شلنا keepMounted، وضبطنا transitionDuration
+              // على صفر بس بوضع الجوال. السبب الحقيقي للباگ: لما نسكر الدرج
+              // (setMobileOpen(false)) وننتقل لصفحة جديدة (NavLink) بنفس
+              // الضغطة، الـtransition الخاص بإغلاق الـBackdrop (كان بياخد
+              // وقت) بينقطع بمنتصفه لما React يعيد الرندر بسبب تغيير الراوت
+              // بنفس اللحظة بالضبط - فبتضل طبقة الـBackdrop عالقة بالـDOM
+              // (خصوصاً مع keepMounted: true يلي كان يمنع React من إزالتها
+              // نهائياً). بإلغاء الـtransition، الإغلاق بيصير فوري (مافي
+              // "منتصف" ينقطع أصلاً)، وبإلغاء keepMounted، React بيشيل
+              // الـModal بالكامل من الـDOM أول ما يسكر بدل ما يخليه معلّق.
+              transitionDuration={isMobile ? 0 : undefined}
               sx={{
                 display: { xs: "block", md: "none" },
                 "& .MuiDrawer-paper": paperSx,

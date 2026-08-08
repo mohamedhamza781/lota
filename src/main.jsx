@@ -20,6 +20,18 @@ if ("serviceWorker" in navigator) {
   });
 }
 
+// بمجرد ما صارت لوحة التحكم "قابلة للتثبيت" (manifest + Service Worker)،
+// المتصفح (كروم تحديداً) بيعرض تلقائياً إشعار/شريط "أضف للشاشة الرئيسية"
+// أول ما يعتبر أي صفحة مؤهّلة - حتى صفحة تسجيل الدخول نفسها، من غير ما
+// حدا يطلب هيك. منمنع هالسلوك التلقائي هون (e.preventDefault())، ومنخزّن
+// الحدث بمتغيّر عام لحد ما نضيف زر تثبيت مخصص بمكان مناسب (متل ما هو
+// موجود أصلاً بصفحة شات العميل عبر installPromptEvent) - هيك التثبيت
+// بيصير قرار إحنا منتحكم فيه وقتيته، مش المتصفح.
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  window.__deferredInstallPrompt = e;
+});
+
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <CacheProvider value={rtlCache}>
