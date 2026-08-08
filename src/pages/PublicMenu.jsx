@@ -313,21 +313,6 @@ export default function PublicMenu({ slugProp, hideDialog = false } = {}) {
           )}
 
           <Navbar logoUrl={establishment.logoUrl} />
-          {isStale && (
-            <Box
-              sx={{
-                textAlign: "center",
-                fontSize: 12,
-                fontWeight: 600,
-                color: "text.secondary",
-                bgcolor: "rgba(0,0,0,0.03)",
-                py: 1,
-                px: 2,
-              }}
-            >
-              ⚠️ لا يوجد اتصال بالإنترنت - عم تشوف آخر نسخة محفوظة من المنيو
-            </Box>
-          )}
           <MenuHero />
           <Marquee items={categories.map((c) => c.name)} />
           <Box id="menu" sx={{ maxWidth: 1200, mx: "auto", px: { xs: 2, md: 6 }, py: 8 }}>
