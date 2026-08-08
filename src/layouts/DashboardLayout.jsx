@@ -70,11 +70,30 @@ export default function DashboardLayout() {
   // فبتضل الصفحة الجديدة "مقفولة" (ما بتقبل ضغط ولا سكرول) لحد ما
   // تعمل رفرش يدوي. هاد إصلاح دفاعي: كل ما يتغير الراوت (يعني كل
   // تنقل ناجح)، منتأكد إنه body مو عالق بقفل قديم ومنحرره بالقوة.
+  //
+  // 🩹 [إضافة] نفس الباگ كمان ممكن يخلي عنصر الـ Backdrop نفسه (الطبقة
+  // الرمادية الشفافة يلي بتغطي كامل الصفحة وتمنع أي ضغط) عالق بالـ DOM
+  // بعد ما يتقفل الدرج - لأنه الـ transition الخاص فيه (fade out) بينقطع
+  // بمنتصف تنفيذه لما route يتغير بنفس اللحظة بالضبط. تنظيف أنماط body
+  // لوحده ما كان كافي بهاي الحالة (هيك كانت الصورة يلي أرسلها المستخدم:
+  // طبقة رمادية عالقة فوق صفحة المنيو، من غير أي درج مفتوح فعليًا).
+  // فمنتأكد كمان إنه mobileOpen مقفول، ومنشيل بالقوة أي Backdrop عالق
+  // بالـ DOM (keepMounted: true يخلّيه موجود بالـ DOM دايمًا، فمجرد ما
+  // يفضل opacity عالق على 1 كافي يمنع الضغط حتى لو مش ظاهر بوضوح).
   useEffect(() => {
     document.body.style.removeProperty("overflow");
     document.body.style.removeProperty("padding-right");
     document.body.style.removeProperty("pointer-events");
-  }, [location.pathname]);
+    setMobileOpen(false);
+
+    document.querySelectorAll(".MuiBackdrop-root").forEach((el) => {
+      const isDrawerOpen = el.closest(".MuiModal-root")?.classList.contains("MuiModal-hidden") === false;
+      if (!isDrawerOpen || !isMobile) {
+        el.style.opacity = "0";
+        el.style.pointerEvents = "none";
+      }
+    });
+  }, [location.pathname, isMobile]);
 
   const ALL_NAV_ITEMS = [
     { to: base, label: "نظرة عامة", icon: SpaceDashboardRoundedIcon, end: true },
