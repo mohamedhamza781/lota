@@ -17,6 +17,7 @@ import MailOutlineRoundedIcon from "@mui/icons-material/MailOutlineRounded";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import { KajoMark } from "../components/KajoMark";
+import { PwaInstallBanner } from "../components/PwaInstallBanner";
 import { tokens } from "../theme/theme";
 import { useAuth } from "../auth/AuthContext";
 
@@ -83,6 +84,8 @@ export default function Login() {
         },
       }}
     >
+      <PwaInstallBanner />
+
       {/* شبكة التوهج الخلفي (Mesh Glow Effect) */}
       <Box
         aria-hidden
