@@ -120,6 +120,16 @@ export default function DashboardLayout() {
           borderBottom: "1px solid",
           borderColor: tokens.hairline || "rgba(0, 0, 0, 0.06)",
           boxShadow: "0 4px 20px -5px rgba(0, 0, 0, 0.03)",
+          // 🩹 [إصلاح] على آيفون (سفاري بوضع "أضف للشاشة الرئيسية" أو
+          // حتى سفاري العادي أحياناً)، apple-mobile-web-app-status-bar-style
+          // مضبوط "black-translucent" بـindex.html، يعني المحتوى بيمتد
+          // فعلياً تحت شريط الحالة (الساعة/البطارية/الجزيرة الديناميكية)
+          // بدل ما ينزل تلقائياً تحته. بدون هاد الـpadding، الـAppBar (وزر
+          // فتح القائمة ☰ تحديداً) بيطلع محشور جوا/تحت منطقة النظام فوق -
+          // مش قابل للضغط عملياً. env(safe-area-inset-top) بترجع 0 على أي
+          // متصفح/جهاز تاني ما إله notch (بفضل viewport-fit=cover بالـmeta
+          // tag)، فما في أي أثر جانبي على الأندرويد/الديسكتوب.
+          paddingTop: "env(safe-area-inset-top, 0px)",
         }}
       >
         <Toolbar sx={{ justifyContent: "space-between", px: { xs: 2, sm: 3.5 }, gap: 1 }}>
@@ -225,7 +235,9 @@ export default function DashboardLayout() {
       {(() => {
         const drawerContent = (
           <>
-            <Toolbar sx={{ px: 3 }}>
+            {/* نفس الاحتياط بالدرج (خصوصاً بوضع الجوال يلي بياخذ الشاشة
+                كاملة) - شعار الشركة ما ينحشرش تحت شريط الحالة */}
+            <Toolbar sx={{ px: 3, pt: "env(safe-area-inset-top, 0px)" }}>
               <Stack
                 component={isSuperAdmin ? RouterLink : "div"}
                 to={isSuperAdmin ? "/" : undefined}
@@ -408,7 +420,10 @@ export default function DashboardLayout() {
           overflowX: "hidden",
         }}
       >
-        <Toolbar />
+        {/* السبيسر لازم يكبر بنفس مقدار safe-area-inset-top يلي ضفناها
+            على الـAppBar فوق، وإلا أول محتوى بالصفحة (بطاقة "١ كيان
+            مسجّلاً..." مثلاً) بيضل يتغطى جزئياً تحت الهيدر */}
+        <Toolbar sx={{ mt: "env(safe-area-inset-top, 0px)" }} />
         <Box sx={{ animation: "fadeIn 0.35s ease-out" }}>
           <Outlet />
         </Box>
