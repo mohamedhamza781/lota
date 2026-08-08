@@ -84,10 +84,17 @@ const EMPTY_FORM = { name: "", phone: "" };
 export default function Customers() {
   const { establishmentId } = useParams();
   const navigate = useNavigate();
-  const { establishments, addCustomer, updateCustomer, deleteCustomer } = useAuth();
+  const { establishments, ensureEstablishmentDetail, addCustomer, updateCustomer, deleteCustomer } = useAuth();
 
   const establishment = establishments.find((e) => e.id === establishmentId);
   const customers = establishment?.customers ?? [];
+
+  // بدون هاد الاستدعاء، لو المستخدم عمل ريلود مباشرة على صفحة العملاء
+  // (بدل ما يوصلها بالتنقّل من صفحة ثانية)، establishment.customers بتضل
+  // فاضية لحد ما يفتح صفحة ثانية بتعمل نفس النداء (متل المنيو/الداشبورد)
+  useEffect(() => {
+    if (establishmentId) ensureEstablishmentDetail(establishmentId);
+  }, [establishmentId, ensureEstablishmentDetail]);
 
   // تنبيه "زيارات متكررة مشبوهة" - مؤشر يستاهل مراجعة يدوية (احتمال تحايل
   // بمسح كود QR الثابت المطبوع من غير مكان الفرع - شوف الحماية
