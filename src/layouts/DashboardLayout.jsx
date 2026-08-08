@@ -71,6 +71,20 @@ export default function DashboardLayout() {
     document.body.style.removeProperty("pointer-events");
   }, [location.pathname]);
 
+  // 🩹 [إصلاح إضافي] onClick={() => setMobileOpen(false)} على كل عنصر
+  // بالقائمة (تحت) بيفترض إنه حدث الكليك/اللمس دايماً بيوصل وينفّذ قبل/مع
+  // التنقل - بس عملياً على موبايل حقيقي (خصوصاً أندرويد) لوحظ إنه القائمة
+  // بتضل ظاهرة بعد الاختيار رغم إنه التنقل نفسه بيصير صح (يعني الرابط
+  // بيتغيّر، بس onClick ما وصل ينفّذ فعليًا - غالبًا بسبب سباق/تعارض بين
+  // حدث اللمس وسلوك NavLink الداخلي بمكتبة react-router، أو تأخير الـ300ms
+  // المعروف لبعض متصفحات الموبايل). فبدل ما نعتمد فقط على onClick، منقفل
+  // القائمة أيضاً تلقائياً كل ما يتغيّر الراوت (location.pathname) - هيك
+  // حتى لو onClick فشل لأي سبب، تغيّر الصفحة لحاله (يلي مؤكد عم يصير) كافي
+  // يسكر القائمة.
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname]);
+
   const ALL_NAV_ITEMS = [
     { to: base, label: "نظرة عامة", icon: SpaceDashboardRoundedIcon, end: true },
     { to: `${base}/menu`, label: "المنيو", icon: RestaurantMenuRoundedIcon },
