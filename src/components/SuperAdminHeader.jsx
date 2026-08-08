@@ -22,7 +22,15 @@ export function SuperAdminHeader({ subtitle = "لوحة المنصة — Super A
 
   return (
     <Stack
-      sx={{ px: { xs: 2, sm: 3, md: 6 }, py: { xs: 1.5, sm: 3 }, borderBottom: `1px solid ${tokens.hairline}` }}
+      sx={{
+        px: { xs: 2, sm: 3, md: 6 },
+        py: { xs: 1.5, sm: 3 },
+        borderBottom: `1px solid ${tokens.hairline}`,
+        position: "sticky",
+        top: 0,
+        zIndex: (theme) => theme.zIndex.appBar,
+        backgroundColor: tokens.paper,
+      }}
       spacing={{ xs: 1.25, sm: 0 }}
     >
       {/* صف علوي: الشعار + بيانات الحساب. جوّا نفس الصف بكل الأحجام
