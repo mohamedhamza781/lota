@@ -801,7 +801,7 @@ function CouponsView({ slug, chatId }) {
 // الشاشة، صار إشعار عائم (toast) بيظهر بس كل فترة وفترة (مرة كل ٢٤
 // ساعة كحد أقصى، محفوظ بالـlocalStorage)، وبيختفي لحاله بعد شوي أو
 // بمجرد ما تسكّره يدوياً - ما بياخذ مساحة دايمة من الشاشة إطلاقاً.
-const INSTALL_PROMPT_COOLDOWN_MS = 20 * 1000; // ⚠️ مؤقت للتجربة - كانت: 24 * 60 * 60 * 1000 (٢٤ ساعة)، رجّعها لما تخلص التجربة
+const INSTALL_PROMPT_COOLDOWN_MS = 24 * 60 * 60 * 1000; // ٢٤ ساعة - رجّعناها من قيمة التجربة المؤقتة (٢٠ ثانية) يلي كانت سبب ظهور الإشعار "ثابت" بشكل متكرر
 const INSTALL_PROMPT_STORAGE_KEY = "lotality_install_prompt_last_shown";
 const INSTALL_PROMPT_AUTO_HIDE_MS = 9000; // بيختفي لحاله بعد ٩ ثواني لو محدا سكّره يدوياً
 
@@ -840,14 +840,9 @@ function InstallBanner({ canInstall, isIOS, isAndroid, isAppInstalled, onInstall
     }
   }
 
-  // بيختفي لحاله بعد فترة لو محدا تفاعل معه (يدوس تثبيت أو يسكّره)،
-  // إلا لو فاتح تعليمات آيفون (خليها مفتوحة لحد ما يسكّرها بنفسه)
-  useEffect(() => {
-    if (!visible || showIOSInstructions || showAndroidInstructions) return;
-    const hideTimer = setTimeout(dismiss, INSTALL_PROMPT_AUTO_HIDE_MS);
-    return () => clearTimeout(hideTimer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible, showIOSInstructions, showAndroidInstructions]);
+  // 🩹 [تعديل] شيلنا الاختفاء التلقائي بعد ٩ ثواني - المطلوب هلق إنه
+  // الإشعار يضل ظاهر باستمرار لحد ما المستخدم يتفاعل معه فعلياً (يدوس
+  // "ثبّت" أو يسكّره يدوياً بزر الـX - شوف dismiss() فوق).
 
   if (!visible) return null;
 
