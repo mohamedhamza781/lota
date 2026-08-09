@@ -2565,6 +2565,13 @@ export default function WebChat() {
   const bottomRef = useRef(null);
   const chatContainerRef = useRef(null);
   const fileInputRef = useRef(null);
+  // لحظة تحميل الصفحة - أقرب توقيت متوفر عنّا لحظة "قراءة QR" الفعلية
+  // (العميل بيوصل هون مباشرة بعد المسح، قبل حتى ما يعبّي فورم التسجيل).
+  // منمررها للباك إند مع "join" تحت عشان جدولة رسالة طلب صورة الوجبة
+  // (بعد 15 دقيقة) تنطلق من هاي اللحظة بالضبط، مش من لحظة إتمام التسجيل
+  // (اللي ممكن تتأخر شوي حسب وقت تعبئة الاسم/الرقم) - شوف qrScannedAt
+  // بـwhatsapp.service.js وwebChat.service.js لتفاصيل أكتر.
+  const pageLoadAtRef = useRef(new Date().toISOString());
 
   const [establishment, setEstablishment] = useState(null);
   const [connectionState, setConnectionState] = useState("connecting"); // connecting | connected | error | reconnecting
@@ -3060,7 +3067,7 @@ export default function WebChat() {
     socketRef.current = socket;
 
     socket.on("connect", () => {
-      socket.emit("join", { slug, chatId: savedChatId, viaQr, referralCode, geo: geoRef.current });
+      socket.emit("join", { slug, chatId: savedChatId, viaQr, referralCode, geo: geoRef.current, qrScannedAt: pageLoadAtRef.current });
     });
 
     socket.on("joined", (data) => {
