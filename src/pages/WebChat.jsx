@@ -79,7 +79,7 @@ const ThemeContext = createContext(DEFAULT_THEME);
 const CHAT_ID_STORAGE_PREFIX = "lotality_webchat_id:";
 // علامة دائمة (مش مرتبطة بمنشأة معيّنة) بتتخزن أول ما العميل يثبّت
 // الاختصار مرة وحدة - عشان بزيارات لاحقة عبر المتصفح (مسح QR جديد) نعرف
-// إنه أصلاً عنده اختصار مثبّت ونقترحله يرجعله (شوف InstalledAppHint)
+// إنه أصلاً عنده اختصار مثبّت (مستخدمة بمنطق alreadyInstalled تحت)
 const INSTALLED_FLAG_KEY = "lotality_pwa_installed";
 // علامة بالـsessionStorage (خاصة بهاد التبويب بس) - بنتأكد منها قبل
 // محاولة تسليم الرابط لنظام أندرويد (شوف intent:// تحت) عشان ما نعيد
@@ -2063,56 +2063,6 @@ function RegisteringScreen({ name, logoUrl, establishmentName }) {
   );
 }
 
-// شاشة ترحيبية بعد التسجيل مباشرة - بتعرّف العميل بفكرة المجتمع وفوائده
-// بشكل عام (بدون أرقام/تفاصيل محدّدة)، وبعدين بتوديه للمحادثة الفعلية
-// تلميح "ارجع لاختصارك المثبّت" - بيظهر بس لو (أ) العميل فاتح الموقع
-// هلق من متصفح عادي (مش من داخل التطبيق المثبّت نفسه) و(ب) عنده علامة
-// دائمة إنه سبق وثبّت الاختصار قبل هيك (مثلاً من زيارة سابقة). مفيد
-// لأنه مسح QR أي مرة تانية بيفتح المتصفح إجبارياً (قيد نظام تشغيل، مش
-// من طرفنا) - فبنذكّره إنه أسرع يرجع لاختصاره المثبّت لباقي حاجاته
-// (نقاطه، الهدايا، المنيو...) بدل ما يضل شغال من المتصفح.
-function InstalledAppHint({ isStandaloneNow }) {
-  const THEME = useContext(ThemeContext);
-  const [dismissed, setDismissed] = useState(false);
-
-  const hasInstalledBefore = useMemo(() => {
-    try {
-      return localStorage.getItem(INSTALLED_FLAG_KEY) === "1";
-    } catch {
-      return false;
-    }
-  }, []);
-
-  if (isStandaloneNow || !hasInstalledBefore || dismissed) return null;
-
-  return (
-    <div
-      style={{
-        margin: "8px 12px 0",
-        padding: "9px 12px",
-        borderRadius: 12,
-        background: `${THEME.accent}14`,
-        border: `1px solid ${THEME.accent}30`,
-        display: "flex",
-        alignItems: "center",
-        gap: 8,
-        flexShrink: 0,
-      }}
-    >
-      <span style={{ fontSize: 12, color: THEME.textPrimary, flex: 1, lineHeight: 1.6 }}>
-        خلصت هون؟ ارجع لاختصارك المثبّت بشاشتك الرئيسية لباقي حاجاتك (نقاطك، هداياك، المنيو...) 👍
-      </span>
-      <button
-        onClick={() => setDismissed(true)}
-        aria-label="إغلاق"
-        style={{ border: "none", background: "transparent", color: THEME.textSecondary, cursor: "pointer", padding: 2, fontSize: 15, lineHeight: 1, flexShrink: 0 }}
-      >
-        ×
-      </button>
-    </div>
-  );
-}
-
 // بانر "فعّل الإشعارات" الخاص بآيفون تحديداً - سفاري بيفرض إنه طلب إذن
 // الإشعارات لازم ينطلق من ضغطة مستخدم مباشرة (مش تلقائياً من كود)، فهون
 // منستنى ضغطة حقيقية بدل ما نحاول نطلب الإذن تلقائياً (شوف تعليق useEffect
@@ -3449,7 +3399,7 @@ export default function WebChat() {
       setIsAppInstalled(true);
       // منحفظ "تم التثبيت" بشكل دائم بالـlocalStorage - عشان لو رجع فتح
       // رابط عادي بالمتصفح (مثلاً من مسح QR جديد) بزيارة لاحقة، نعرف إنه
-      // أصلاً عنده اختصار مثبّت ونذكّره يرجعله (شوف InstalledAppHint تحت)
+      // أصلاً عنده اختصار مثبّت (مستخدمة بمنطق alreadyInstalled تحت)
       try {
         localStorage.setItem(INSTALLED_FLAG_KEY, "1");
       } catch {
@@ -3777,7 +3727,6 @@ export default function WebChat() {
       }}
     >
       <InstallBanner {...installBannerProps} establishmentName={establishment?.establishmentName} />
-      <InstalledAppHint isStandaloneNow={isStandaloneNow} />
       <IOSNotificationPrompt show={showIOSNotifyPrompt} busy={iosNotifyBusy} onEnableClick={handleEnableIOSNotifications} />
       <OfflineBanner connectionState={connectionState} hasChatFooter={activeTab === "chat"} />
       {storageUnavailable && (
