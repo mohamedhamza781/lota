@@ -2102,6 +2102,62 @@ function InstalledAppHint({ isStandaloneNow }) {
   );
 }
 
+// بانر "فعّل الإشعارات" الخاص بآيفون تحديداً - سفاري بيفرض إنه طلب إذن
+// الإشعارات لازم ينطلق من ضغطة مستخدم مباشرة (مش تلقائياً من كود)، فهون
+// منستنى ضغطة حقيقية بدل ما نحاول نطلب الإذن تلقائياً (شوف تعليق useEffect
+// الاشتراك بـPush فوق لتفاصيل أكتر)
+function IOSNotificationPrompt({ show, busy, onEnableClick }) {
+  const THEME = useContext(ThemeContext);
+  const [dismissed, setDismissed] = useState(false);
+
+  if (!show || dismissed) return null;
+
+  return (
+    <div
+      style={{
+        margin: "8px 12px 0",
+        padding: "9px 12px",
+        borderRadius: 12,
+        background: `${THEME.accent}14`,
+        border: `1px solid ${THEME.accent}30`,
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        flexShrink: 0,
+      }}
+    >
+      <span style={{ fontSize: 12, color: THEME.textPrimary, flex: 1, lineHeight: 1.6 }}>
+        فعّل الإشعارات عشان توصلك رسائلنا حتى وأنت مسكّر التطبيق 🔔
+      </span>
+      <button
+        onClick={onEnableClick}
+        disabled={busy}
+        style={{
+          border: "none",
+          borderRadius: 8,
+          background: THEME.accent,
+          color: "#fff",
+          cursor: busy ? "default" : "pointer",
+          padding: "6px 12px",
+          fontSize: 12,
+          fontWeight: 600,
+          flexShrink: 0,
+          opacity: busy ? 0.7 : 1,
+        }}
+      >
+        {busy ? "..." : "تفعيل"}
+      </button>
+      <button
+        onClick={() => setDismissed(true)}
+        aria-label="إغلاق"
+        style={{ border: "none", background: "transparent", color: THEME.textSecondary, cursor: "pointer", padding: 2, fontSize: 15, lineHeight: 1, flexShrink: 0 }}
+      >
+        ×
+      </button>
+    </div>
+  );
+}
+
 // شريط "لا يوجد اتصال بالإنترنت" - بيظهر لما فعلياً ينقطع النت، وبيختفي
 // لحاله لما يرجع. ما بيمنع أي تنقّل بين التبويبات - البيانات يلي كانت
 // محمّلة قبل انقطاع النت بتضل ظاهرة زي ما هي (React state محفوظة
@@ -3437,6 +3493,48 @@ export default function WebChat() {
   // الاشتراك بإشعارات Push - بس لما نوصل فعلياً للمحادثة (مش بشاشة
   // الترحيب) وعندنا chatId، وبس مرة وحدة لكل chatId (ما منكرر الطلب كل
   // ما يفتح التاب لو أصلاً مشترك)
+  //
+  // 🩹 [إصلاح إشعارات آيفون] WebKit (سفاري/آيفون) بتفرض شرطين إضافيين ما
+  // كانوا متوفرين قبل: (١) ما فيه Push إطلاقاً إلا لو التطبيق "standalone"
+  // (مضاف للشاشة الرئيسية فعلياً، مش مجرد تاب سفاري عادي)، و(٢) طلب
+  // الإذن Notification.requestPermission() لازم ينطلق كنتيجة مباشرة
+  // لضغطة/تفاعل مستخدم حقيقي - لو انطلق تلقائياً من useEffect (زي ما كان
+  // صاير قبل) سفاري بيرفضه بصمت أو ما بيعرض النافذة إطلاقاً، حتى لو
+  // المستخدم أصلاً مثبّت الاختصار. فهون منفصل المنطق: أندرويد/ديسكتوب
+  // يضلوا يطلبوا الإذن تلقائياً زي ما كانوا (شغالين تمام أصلاً)، وآيفون
+  // بس منستنى ضغطة المستخدم على البانر تحت (IOSNotificationPrompt).
+  const subscribeToPushNow = async () => {
+    if (!chatId) return false;
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return false;
+
+    const alreadySubscribedKey = `lotality_push_subscribed:${chatId}`;
+    if (localStorage.getItem(alreadySubscribedKey)) return true;
+
+    try {
+      const publicKey = await fetchVapidPublicKey();
+      if (!publicKey) return false; // السيرفر ما فيه مفاتيح VAPID مضبوطة - نتجاهل بصمت
+
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") return false;
+
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicKey),
+      });
+
+      await subscribeToPush({ slug, chatId, subscription: subscription.toJSON() });
+      localStorage.setItem(alreadySubscribedKey, "1");
+      return true;
+    } catch (err) {
+      console.error("تعذّر تفعيل إشعارات Push:", err.message);
+      return false;
+    }
+  };
+
+  const [showIOSNotifyPrompt, setShowIOSNotifyPrompt] = useState(false);
+  const [iosNotifyBusy, setIosNotifyBusy] = useState(false);
+
   useEffect(() => {
     if (screen !== "chat" || !chatId) return;
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
@@ -3445,32 +3543,41 @@ export default function WebChat() {
     const alreadySubscribedKey = `lotality_push_subscribed:${chatId}`;
     if (localStorage.getItem(alreadySubscribedKey)) return;
 
+    if (isIOS) {
+      // مش standalone (تاب سفاري عادي) - PushManager أصلاً ما بتكون
+      // موجودة بهاي الحالة على آيفون فالسطر فوق كان رح يوقفنا، بس منسيبها
+      // كطبقة حماية إضافية واضحة بدل الاعتماد الضمني بس. إذن ممنوح مسبقاً
+      // (نادر، مثلاً كان مضبوط من قبل) - منشترك مباشرة بدون ما نحتاج ضغطة
+      // جديدة. غير هيك (الحالة الشائعة: "default") - منستنى ضغطة المستخدم
+      // عالبانر تحت، ما منطلب الإذن تلقائياً.
+      if (!isStandaloneNow) return;
+      if (Notification.permission === "granted") {
+        subscribeToPushNow();
+      } else {
+        setShowIOSNotifyPrompt(true);
+      }
+      return;
+    }
+
+    // أندرويد/ديسكتوب - نفس السلوك التلقائي القديم، شغال تمام هون
     let cancelled = false;
     (async () => {
-      try {
-        const publicKey = await fetchVapidPublicKey();
-        if (!publicKey || cancelled) return; // السيرفر ما فيه مفاتيح VAPID مضبوطة - نتجاهل بصمت
-
-        const permission = await Notification.requestPermission();
-        if (permission !== "granted" || cancelled) return;
-
-        const registration = await navigator.serviceWorker.ready;
-        const subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(publicKey),
-        });
-
-        await subscribeToPush({ slug, chatId, subscription: subscription.toJSON() });
-        localStorage.setItem(alreadySubscribedKey, "1");
-      } catch (err) {
-        console.error("تعذّر تفعيل إشعارات Push:", err.message);
-      }
+      const ok = await subscribeToPushNow();
+      if (cancelled) return;
+      if (!ok) return;
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [screen, chatId, slug]);
+  }, [screen, chatId, slug, isIOS, isStandaloneNow]);
+
+  async function handleEnableIOSNotifications() {
+    setIosNotifyBusy(true);
+    await subscribeToPushNow();
+    setIosNotifyBusy(false);
+    setShowIOSNotifyPrompt(false);
+  }
 
   // التمرير الذكي لأسفل القائمة
   const scrollToBottom = (smooth = true) => {
@@ -3637,6 +3744,7 @@ export default function WebChat() {
     >
       <InstallBanner {...installBannerProps} establishmentName={establishment?.establishmentName} />
       <InstalledAppHint isStandaloneNow={isStandaloneNow} />
+      <IOSNotificationPrompt show={showIOSNotifyPrompt} busy={iosNotifyBusy} onEnableClick={handleEnableIOSNotifications} />
       <OfflineBanner connectionState={connectionState} hasChatFooter={activeTab === "chat"} />
       {storageUnavailable && (
         <div
