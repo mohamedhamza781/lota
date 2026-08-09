@@ -143,7 +143,7 @@ export default function Branches() {
   }
 
   // === إعدادات الفوتر بصفحة المنيو العامة ===
-  const EMPTY_FOOTER = { phone: "", email: "", hours: "", instagram: "", facebook: "", twitter: "" };
+  const EMPTY_FOOTER = { phone: "", email: "", hours: "", instagram: "", facebook: "", tiktok: "" };
   const [footerForm, setFooterForm] = useState(() => {
     const fc = getCached(`establishmentDetail:${establishmentId}`)?.footerConfig || {};
     return {
@@ -152,7 +152,7 @@ export default function Branches() {
       hours: fc.hours || "",
       instagram: fc.socialLinks?.instagram || "",
       facebook: fc.socialLinks?.facebook || "",
-      twitter: fc.socialLinks?.twitter || "",
+      tiktok: fc.socialLinks?.tiktok || "",
     };
   });
   const [footerSaving, setFooterSaving] = useState(false);
@@ -172,7 +172,7 @@ export default function Branches() {
           socialLinks: {
             instagram: footerForm.instagram || null,
             facebook: footerForm.facebook || null,
-            twitter: footerForm.twitter || null,
+            tiktok: footerForm.tiktok || null,
           },
         },
       });
@@ -304,7 +304,7 @@ export default function Branches() {
           hours: fc.hours || "",
           instagram: fc.socialLinks?.instagram || "",
           facebook: fc.socialLinks?.facebook || "",
-          twitter: fc.socialLinks?.twitter || "",
+          tiktok: fc.socialLinks?.tiktok || "",
         });
         const mc = est.menuDialogConfig || {};
         setWelcomeForm({
@@ -671,12 +671,12 @@ export default function Branches() {
               sx={{ "& .MuiOutlinedInput-root": { borderRadius: "12px" } }}
             />
             <TextField
-              label="X (تويتر)"
+              label="تيك توك"
               size="small"
               fullWidth
-              value={footerForm.twitter}
-              onChange={(e) => setFooterForm((f) => ({ ...f, twitter: e.target.value }))}
-              placeholder="https://x.com/..."
+              value={footerForm.tiktok}
+              onChange={(e) => setFooterForm((f) => ({ ...f, tiktok: e.target.value }))}
+              placeholder="https://tiktok.com/@..."
               sx={{ "& .MuiOutlinedInput-root": { borderRadius: "12px" } }}
             />
           </Stack>
