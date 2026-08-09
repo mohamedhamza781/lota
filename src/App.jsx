@@ -65,7 +65,7 @@ function RouteLoadingFallback() {
 }
 
 // 🩹 [فصل الـmanifest + وسوم آيفون] الداشبورد له manifest.json ثابت
-// (اسمه "كيان")، وكل منشأة إلها manifest.json ديناميكي خاص فيها (شوف
+// (اسمه "كاجو")، وكل منشأة إلها manifest.json ديناميكي خاص فيها (شوف
 // WebChat.jsx). لازم نضيف/نحدّث وسم <link rel="manifest"> بالجافاسكربت
 // هون بدل ما يكون موجود بشكل ثابت جوا index.html - وإلا أي صفحة
 // /chat/:slug أو /m/:slug كانت رح تبلّش بmanifest الداشبورد الخاطئ لحد
@@ -84,7 +84,7 @@ function RouteLoadingFallback() {
 // صار. الحل نفسه: نرجّعهم للقيمة الافتراضية بمجرد ما نطلع من صفحات
 // المنشأة/المنيو.
 const DEFAULT_APPLE_TOUCH_ICON = "/icons/apple-touch-icon.png";
-const DEFAULT_APPLE_WEB_APP_TITLE = "كيان";
+const DEFAULT_APPLE_WEB_APP_TITLE = "كاجو";
 
 function setMetaTag(name, content) {
   let el = document.querySelector(`meta[name="${name}"]`);
@@ -164,7 +164,7 @@ export default function App() {
       {/* شات الويب - بديل واتساب الكامل، بدون تسجيل دخول، بنفس منطق البوت */}
       <Route path="/chat/:slug" element={<WebChat />} />
 
-      {/* لوحة منشأة محدّدة — نفس شاشات كيان، بس مفلترة حسب :establishmentId */}
+      {/* لوحة منشأة محدّدة — نفس شاشات كاجو، بس مفلترة حسب :establishmentId */}
       <Route
         path="/admin/:establishmentId"
         element={
