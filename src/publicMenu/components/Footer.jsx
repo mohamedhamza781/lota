@@ -1,7 +1,7 @@
 import { Box, Grid, Typography, Stack, IconButton, Link } from "@mui/material";
 import InstagramIcon from "@mui/icons-material/Instagram";
 import FacebookIcon from "@mui/icons-material/Facebook";
-import MusicVideoIcon from "@mui/icons-material/MusicVideo";
+import TikTokIcon from "./TikTokIcon";
 import PlaceRoundedIcon from "@mui/icons-material/PlaceRounded";
 import AccessTimeRoundedIcon from "@mui/icons-material/AccessTimeRounded";
 import PhoneRoundedIcon from "@mui/icons-material/PhoneRounded";
@@ -75,7 +75,7 @@ export default function Footer({
   const SOCIAL_ICONS = [
     { Icon: InstagramIcon, url: social.instagram },
     { Icon: FacebookIcon, url: social.facebook },
-    { Icon: MusicVideoIcon, url: social.tiktok },
+    { Icon: TikTokIcon, url: social.tiktok },
   ];
 
   return (
