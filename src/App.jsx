@@ -64,14 +64,38 @@ function RouteLoadingFallback() {
   );
 }
 
-// 🩹 [فصل الـmanifest] الداشبورد له manifest.json ثابت (اسمه "كيان")،
-// وكل منشأة إلها manifest.json ديناميكي خاص فيها (شوف WebChat.jsx). لازم
-// نضيف/نحدّث وسم <link rel="manifest"> بالجافاسكربت هون بدل ما يكون
-// موجود بشكل ثابت جوا index.html - وإلا أي صفحة /chat/:slug أو /m/:slug
-// كانت رح تبلّش بمanifest الداشبورد الخاطئ لحد ما React يشتغل ويستبدله
-// (سباق race condition كان بيسبب تثبيت اختصار خاطئ أحياناً). هون منتأكد
-// إنه manifest الداشبورد بيتحط بس لما نكون فعلياً بصفحة داشبورد/تسجيل
-// دخول، مش بصفحات المنشأة/المنيو العامة (هدول عندهم منطقهم الخاص).
+// 🩹 [فصل الـmanifest + وسوم آيفون] الداشبورد له manifest.json ثابت
+// (اسمه "كيان")، وكل منشأة إلها manifest.json ديناميكي خاص فيها (شوف
+// WebChat.jsx). لازم نضيف/نحدّث وسم <link rel="manifest"> بالجافاسكربت
+// هون بدل ما يكون موجود بشكل ثابت جوا index.html - وإلا أي صفحة
+// /chat/:slug أو /m/:slug كانت رح تبلّش بmanifest الداشبورد الخاطئ لحد
+// ما React يشتغل ويستبدله (سباق race condition كان بيسبب تثبيت اختصار
+// خاطئ أحياناً). هون منتأكد إنه manifest الداشبورد بيتحط بس لما نكون
+// فعلياً بصفحة داشبورد/تسجيل دخول، مش بصفحات المنشأة/المنيو العامة
+// (هدول عندهم منطقهم الخاص).
+//
+// 🆕 نفس المشكلة بالظبط لاقيناها بـapple-touch-icon (أيقونة "إضافة
+// للصفحة الرئيسية" على آيفون/Safari) وapple-mobile-web-app-title: صفحة
+// WebChat.jsx بتحطهم لشعار/اسم المنشأة، بس ما بترجعهم للافتراضي لو
+// العميل انتقل (تنقّل داخلي SPA، بدون ريفرش كامل) من شات المنشأة لصفحة
+// تانية (مثلاً /login) - فتضل الأيقونة عالقة على شعار المنشأة القديم
+// حتى وهو واقف بصفحة الداشبورد. أي "إضافة للصفحة الرئيسية" على آيفون
+// بهاي الحالة بتطلع بأيقونة منشأة + محتوى داشبورد - بالظبط الخلل يلي
+// صار. الحل نفسه: نرجّعهم للقيمة الافتراضية بمجرد ما نطلع من صفحات
+// المنشأة/المنيو.
+const DEFAULT_APPLE_TOUCH_ICON = "/icons/apple-touch-icon.png";
+const DEFAULT_APPLE_WEB_APP_TITLE = "كيان";
+
+function setMetaTag(name, content) {
+  let el = document.querySelector(`meta[name="${name}"]`);
+  if (!el) {
+    el = document.createElement("meta");
+    el.name = name;
+    document.head.appendChild(el);
+  }
+  el.content = content;
+}
+
 function useDashboardManifest() {
   const location = useLocation();
   useEffect(() => {
@@ -85,6 +109,17 @@ function useDashboardManifest() {
       document.head.appendChild(link);
     }
     link.href = "/manifest.json";
+
+    // إرجاع أيقونة وعنوان آيفون للافتراضي (شوف الشرح فوق) - وإلا ممكن
+    // يضلوا عالقين على قيم آخر منشأة زارها العميل بنفس التاب
+    let touchIcon = document.querySelector('link[rel="apple-touch-icon"]');
+    if (!touchIcon) {
+      touchIcon = document.createElement("link");
+      touchIcon.rel = "apple-touch-icon";
+      document.head.appendChild(touchIcon);
+    }
+    touchIcon.href = DEFAULT_APPLE_TOUCH_ICON;
+    setMetaTag("apple-mobile-web-app-title", DEFAULT_APPLE_WEB_APP_TITLE);
   }, [location.pathname]);
 }
 
