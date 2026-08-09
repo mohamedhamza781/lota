@@ -143,13 +143,23 @@ export default function Branches() {
   }
 
   // === إعدادات الفوتر بصفحة المنيو العامة ===
-  const EMPTY_FOOTER = { phone: "", email: "", hours: "", instagram: "", facebook: "", tiktok: "" };
+  // 🩹 city/address هون مو جوا footerConfig - هدول حقلين مستقلين عالمنشأة
+  // نفسها (est.city / est.address بالباك إند)، هوّني بس بنعرضهم/بنعدّلهم
+  // بنفس بطاقة "إعدادات الفوتر" لأنه هذا مكان استخدامهم الوحيد فعلياً
+  // (سطر "وين تلاقي {brandName}" بفوتر صفحة المنيو - شوف Footer.jsx). قبل
+  // هيك ما كان فيه أي حقل بالداشبورد يتحكم فيهم، فكانوا دايماً بيرجعوا
+  // للنص الافتراضي الجاهز ("الشارع الرئيسي، {city}") حتى لو صاحب المنشأة
+  // بدّه يحط عنوان حقيقي.
+  const EMPTY_FOOTER = { phone: "", email: "", hours: "", city: "", address: "", instagram: "", facebook: "", tiktok: "" };
   const [footerForm, setFooterForm] = useState(() => {
-    const fc = getCached(`establishmentDetail:${establishmentId}`)?.footerConfig || {};
+    const cached = getCached(`establishmentDetail:${establishmentId}`) || {};
+    const fc = cached.footerConfig || {};
     return {
       phone: fc.phone || "",
       email: fc.email || "",
       hours: fc.hours || "",
+      city: cached.city || "",
+      address: cached.address || "",
       instagram: fc.socialLinks?.instagram || "",
       facebook: fc.socialLinks?.facebook || "",
       tiktok: fc.socialLinks?.tiktok || "",
@@ -165,6 +175,8 @@ export default function Branches() {
     setFooterError("");
     try {
       await establishmentsApi.update(establishmentId, {
+        city: footerForm.city || null,
+        address: footerForm.address || null,
         footerConfig: {
           phone: footerForm.phone || null,
           email: footerForm.email || null,
@@ -302,6 +314,8 @@ export default function Branches() {
           phone: fc.phone || "",
           email: fc.email || "",
           hours: fc.hours || "",
+          city: est.city || "",
+          address: est.address || "",
           instagram: fc.socialLinks?.instagram || "",
           facebook: fc.socialLinks?.facebook || "",
           tiktok: fc.socialLinks?.tiktok || "",
@@ -647,6 +661,27 @@ export default function Branches() {
             placeholder="يوميًا، من ٩:٠٠ صباحًا حتى ١١:٠٠ مساءً"
             sx={{ "& .MuiOutlinedInput-root": { borderRadius: "12px" } }}
           />
+
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+            <TextField
+              label="المدينة"
+              size="small"
+              fullWidth
+              value={footerForm.city}
+              onChange={(e) => setFooterForm((f) => ({ ...f, city: e.target.value }))}
+              placeholder="غزة"
+              sx={{ "& .MuiOutlinedInput-root": { borderRadius: "12px" } }}
+            />
+            <TextField
+              label="العنوان"
+              size="small"
+              fullWidth
+              value={footerForm.address}
+              onChange={(e) => setFooterForm((f) => ({ ...f, address: e.target.value }))}
+              placeholder="الشارع الرئيسي، غزة"
+              sx={{ "& .MuiOutlinedInput-root": { borderRadius: "12px" } }}
+            />
+          </Stack>
 
           <Typography variant="caption" sx={{ color: tokens.muted, fontWeight: 700 }}>
             روابط التواصل الاجتماعي (اختياري - اتركها فاضية لو ما بدك الأيقونة تشتغل)
