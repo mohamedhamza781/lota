@@ -1576,7 +1576,23 @@ function WelcomeScreen({ slug, onSubmit, installBannerProps, logoUrl: earlyLogoU
         padding: "12px 18px 16px",
       }}
     >
-      <InstallBanner {...installBannerProps} />
+      {/* 🩹 [إصلاح جذري] ما منعرض بانر "ثبّت الاختصار" هون (شاشة welcome،
+          قبل ما يسجّل العميل بياناته) نهائياً - installBannerProps ما عاد
+          بيتمرر لهاي الشاشة تحديداً من المكوّن الأب (شوف تعليق أطول عند
+          استدعاء WelcomeScreen تحت). جرّبنا قبل هيك عدة طرق نضمن وصول
+          إشارة "مسحت QR" للاختصار حتى لو انثبّت من هون (sessionStorage،
+          تضمينها بـstart_url تبع الـmanifest، تأخير مسحها من شريط العنوان)
+          - وبالتجربة الفعلية على آيفون ولا وحدة كانت كافية: الاختصار كان
+          ينفتح بدون أي إشارة QR (ولا حتى طلب صلاحية الموقع - دليل إنه
+          viaQr رجعت false من أول لحظة)، يعني آيفون فعلياً ما بيحترم
+          start_url تبع الـmanifest ولا الرابط الظاهر بشريط العنوان وقت
+          "إضافة للشاشة الرئيسية" اليدوية بشكل مضمون. بدل ما نلاحق سلوك
+          آيفون غير المضمون، الحل الجذري إنه ما نسمح بالتثبيت أصلاً لحد ما
+          يخلص التسجيل فعلياً - البانر لسا بيظهر طبيعي بشاشتي "intro"
+          و"chat" بعد ما يصير عند العميل حساب وchatId محفوظ (آمن وقتها
+          لأنه حتى لو الاختصار فتح بدون إشارة QR، عنده chatId محفوظ أصلاً
+          فبيكمّل نفس جلسته عادي، ما في داعي لإشارة QR إطلاقاً). */}
+      {installBannerProps && <InstallBanner {...installBannerProps} />}
 
       <div
         style={{
@@ -3700,7 +3716,12 @@ export default function WebChat() {
         <WelcomeScreen
           slug={slug}
           onSubmit={handleWelcomeSubmit}
-          installBannerProps={installBannerProps}
+          // 🩹 [إصلاح جذري] ما منمرر installBannerProps هون عن قصد - شوف
+          // التعليق المطوّل جوا WelcomeScreen نفسها عند مكان عرض
+          // InstallBanner لتفاصيل السبب الكامل (ملخص: منع تثبيت اختصار
+          // قبل ما يخلص التسجيل، لأنه آيفون ما بيضمن وصول إشارة "مسحت QR"
+          // للاختصار لو انثبّت من هون).
+          installBannerProps={null}
           logoUrl={establishment?.establishmentLogo || earlyInfo?.logoUrl}
           establishmentName={establishment?.establishmentName || earlyInfo?.name}
           externalError={registrationError}
