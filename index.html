@@ -4,12 +4,13 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>كيان</title>
-    <!-- PWA: manifest ثابت للوحة التحكم (الداشبورد). صفحة شات العميل
-         (WebChat.jsx) بتستبدل وسم <link rel="manifest"> هاد ديناميكياً
-         بـmanifest خاص فيها (لكل منشأة) وقت ما تكون مفتوحة - بس هاد
-         مش مشكلة عمليًا، لأنه /chat/:slug صفحة عامة تفتح بمتصفح/جلسة
-         منفصلة تمامًا عن لوحة التحكم (المدير ما بيفتحها بنفس التاب). -->
-    <link rel="manifest" href="/manifest.json" />
+    <!-- PWA: ما عاد فيه manifest ثابت هون. الداشبورد وصفحة شات العميل
+         (WebChat.jsx) كل وحدة منهم بتضيف/تستبدل وسم <link rel="manifest">
+         ديناميكياً بنفسها وقت ما تكون مفتوحة (شوف App.jsx للداشبورد،
+         WebChat.jsx للمنشأة) - عشان ما يصير عندنا manifest "خاطئ" موجود
+         بالـHTML الخام قبل ما جافاسكربت يشتغل ويحدد الصح (كان هاد سبب
+         مشكلة حقيقية: تثبيت اختصار منشأة كان أحياناً بياخذ manifest
+         الداشبورد "كيان" بالغلط لأنه كان موجود من أول لحظة تحميل الصفحة).
     <meta name="theme-color" content="#0A0A09" />
     <link rel="icon" href="/icons/icon-192.png" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />

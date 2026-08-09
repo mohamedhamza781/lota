@@ -1,5 +1,5 @@
-import { lazy, Suspense } from "react";
-import { Routes, Route } from "react-router-dom";
+import { lazy, Suspense, useEffect } from "react";
+import { Routes, Route, useLocation } from "react-router-dom";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
 
 // كل الصفحات كانت قبل هيك بـimport عادي (فوري) - يعني كل زيارة للموقع
@@ -64,7 +64,32 @@ function RouteLoadingFallback() {
   );
 }
 
+// 🩹 [فصل الـmanifest] الداشبورد له manifest.json ثابت (اسمه "كيان")،
+// وكل منشأة إلها manifest.json ديناميكي خاص فيها (شوف WebChat.jsx). لازم
+// نضيف/نحدّث وسم <link rel="manifest"> بالجافاسكربت هون بدل ما يكون
+// موجود بشكل ثابت جوا index.html - وإلا أي صفحة /chat/:slug أو /m/:slug
+// كانت رح تبلّش بمanifest الداشبورد الخاطئ لحد ما React يشتغل ويستبدله
+// (سباق race condition كان بيسبب تثبيت اختصار خاطئ أحياناً). هون منتأكد
+// إنه manifest الداشبورد بيتحط بس لما نكون فعلياً بصفحة داشبورد/تسجيل
+// دخول، مش بصفحات المنشأة/المنيو العامة (هدول عندهم منطقهم الخاص).
+function useDashboardManifest() {
+  const location = useLocation();
+  useEffect(() => {
+    const isTenantScopedPage = location.pathname.startsWith("/chat/") || location.pathname.startsWith("/m/");
+    if (isTenantScopedPage) return; // WebChat.jsx / PublicMenu.jsx (لو إلها منطق مشابه) بيتكفلوا فيها لحالهم
+
+    let link = document.querySelector('link[rel="manifest"]');
+    if (!link) {
+      link = document.createElement("link");
+      link.rel = "manifest";
+      document.head.appendChild(link);
+    }
+    link.href = "/manifest.json";
+  }, [location.pathname]);
+}
+
 export default function App() {
+  useDashboardManifest();
   return (
     <Suspense fallback={<RouteLoadingFallback />}>
     <Routes>
