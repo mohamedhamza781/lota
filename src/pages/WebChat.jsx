@@ -3364,12 +3364,18 @@ export default function WebChat() {
   // لازم يكون ديناميكي لأنه المنصة multi-tenant، ما فيه ملف ثابت واحد
   // يصلح لكل المنشآت. منضيف/منحدّث وسم <link rel="manifest"> يدوياً.
   useEffect(() => {
-    let link = document.querySelector('link[rel="manifest"]');
-    if (!link) {
-      link = document.createElement("link");
-      link.rel = "manifest";
-      document.head.appendChild(link);
-    }
+    // 🩹 [إصلاح] بنشيل وسم <link rel="manifest"> القديم ونعمل وحدة جديدة
+    // كل مرة (بدل ما نغيّر href بس على نفس العنصر) - بعض نسخ WebKit/سفاري
+    // ما بترجع تجيب manifest.json من جديد لمجرد تغيير href على عنصر
+    // موجود أصلاً بالـDOM (بتضل معتمدة على أول نسخة جابتها وقت ما الصفحة
+    // فتحت لأول مرة)، فحتى لو صار cid صحيح بالرابط الجديد، سفاري ممكن
+    // يضل شايف النسخة القديمة (بدون cid) وقت "إضافة للشاشة الرئيسية".
+    // إنشاء عنصر جديد بالكامل بيجبر إعادة الجلب الفعلي.
+    const oldLink = document.querySelector('link[rel="manifest"]');
+    if (oldLink) oldLink.remove();
+    const link = document.createElement("link");
+    link.rel = "manifest";
+    document.head.appendChild(link);
     // [Change 1] نضيف chatId لرابط manifest عشان start_url يحتويه ويحفظ
     // الجلسة لما العميل يفتح التطبيق المثبّت مرة تانية (خصوصاً iOS)
     const savedChatIdForManifest = (() => { try { return localStorage.getItem(storageKey); } catch { return null; } })();
@@ -3392,7 +3398,12 @@ export default function WebChat() {
     const qrParam = viaQr ? "qr=1" : "";
     const cidParam = savedChatIdForManifest ? `cid=${encodeURIComponent(savedChatIdForManifest)}` : "";
     const manifestQuery = [qrParam, cidParam].filter(Boolean).join("&");
-    link.href = `${API_ORIGIN}/api/web-chat/${slug}/manifest.json${manifestQuery ? `?${manifestQuery}` : ''}`;
+    // 🩹 "_t" هون بس لكسر أي كاش قد يصير على مستوى جلب ملف manifest.json
+    // نفسه (شوف الشرح فوق عند إنشاء العنصر من جديد) - ما بيأثر إطلاقاً
+    // على start_url الفعلي جوا محتوى الـmanifest (هاد مبني بالباك إند من
+    // qr/cid بس، بدون أي علاقة بهاد الباراميتر - شوف getManifest بالباك إند)
+    const cacheBuster = `_t=${Date.now()}`;
+    link.href = `${API_ORIGIN}/api/web-chat/${slug}/manifest.json?${[manifestQuery, cacheBuster].filter(Boolean).join("&")}`;
 
     let themeMeta = document.querySelector('meta[name="theme-color"]');
     if (!themeMeta) {
