@@ -2926,21 +2926,45 @@ export default function WebChat() {
   // من جديد رغم إنه مسحه فعلاً قبل ثواني). بتأخير المسح لحد ما تبلش خطوة
   // التسجيل الفعلية، شريط العنوان بيضل يحمل الإشارة الصحيحة طول الوقت
   // يلي العميل ممكن يقرر فيه يثبّت الاختصار وهو لسا بشاشة welcome.
+  // 🩹 [إصلاح 2] التعليق فوق بيوثّق إنه سفاري بالآيفون "أحياناً بياخذ
+  // الرابط الظاهر بشريط العنوان" وقت "إضافة للشاشة الرئيسية" - بس هاد
+  // الـeffect (بالنسخة القديمة) كان **يمسح** cid من شريط العنوان فور ما
+  // التسجيل يبلّش، ومستحيل يرجع يحطه لأنه chatId أصلاً لسا مش معروف
+  // بهاي اللحظة (بيتعرف بس بعد ما التسجيل يخلص فعلياً، وبهيك الوقت هاد
+  // الـeffect أصلاً خلص شغله وما بيعاود يشتغل تاني لأنه chatId ما كان
+  // بالـdependency array). يعني: حتى بعد إصلاح رابط الـmanifest المخفي
+  // (شوف الـeffect تبعه تحت)، شريط العنوان الظاهر كان يضل خالي من cid
+  // للأبد بعد التسجيل - فلو آيفون اعتمد عليه (السيناريو الموثّق فوق)،
+  // المشكلة تضل موجودة بالظبط زي ما كانت. الحل: نحط cid بشريط العنوان
+  // فور ما يصير معروف (بعد التسجيل) بدل ما نمسحه بس - هيك أي تثبيت
+  // اختصار بعد هيك بياخذ الرابط الصحيح بغض النظر شو بالضبط سفاري بياخذ
+  // (شريط العنوان أو start_url الـmanifest، الاثنين هلق متطابقين).
+  //
+  // ⚠️ ملاحظة أمان مهمة: cid هون بيصير ظاهر ومنسوخ بسهولة من شريط العنوان
+  // (لقطة شاشة، مشاركة الرابط لصديق...) - أي حد يفتحه بياخذ وصول لنفس
+  // حساب العميل (نفس المخاطرة المقبولة أصلاً برابط الـmanifest المخفي، بس
+  // هون أوضح للعميل نفسه). لو هاد غير مقبول من ناحية خصوصية، الحل البديل
+  // الوحيد هو الاعتماد الكامل على رابط الـmanifest فقط وقبول إنه بعض نسخ
+  // آيفون ممكن تفشل بالتعرف على العميل بعد التثبيت المباشر.
   useEffect(() => {
-    if (screen === "welcome") return; // لسا ما بلّش تسجيل - لا تمسح الإشارة من شريط العنوان لسا
+    if (screen === "welcome") return; // لسا ما بلّش تسجيل - لا تلمس شريط العنوان لسا
 
-    const hasCid = Boolean(new URLSearchParams(window.location.search).get("cid"));
-    if (!viaQr && !referralCode && !hasCid) return;
     try {
       const url = new URL(window.location.href);
       url.searchParams.delete("src");
       url.searchParams.delete("ref");
-      url.searchParams.delete("cid"); // [Change 1] منمسح cid بعد ما نقرأه
-      window.history.replaceState({}, "", url.toString());
+      if (chatId) {
+        url.searchParams.set("cid", chatId);
+      } else {
+        url.searchParams.delete("cid");
+      }
+      if (url.toString() !== window.location.href) {
+        window.history.replaceState({}, "", url.toString());
+      }
     } catch {
       // تجاهل - ما بيأثر على شي جوهري
     }
-  }, [viaQr, referralCode, screen]);
+  }, [viaQr, referralCode, screen, chatId]);
 
   const pushMessage = useCallback((msg) => {
     setMessages((prev) => [...prev, { id: `${Date.now()}-${Math.random()}`, ...msg }]);
