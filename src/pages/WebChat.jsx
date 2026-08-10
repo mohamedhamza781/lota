@@ -999,7 +999,7 @@ function HomeView({ logoUrl, establishmentName, promoText, promotions = [] }) {
         {promoText ? (
           <p style={{ fontSize: 14, lineHeight: 1.9, color: THEME.textPrimary, whiteSpace: "pre-wrap", margin: 0, textAlign: "center" }}>{promoText}</p>
         ) : (
-          <p style={{ fontSize: 13.5, color: THEME.textSecondary, margin: 0, textAlign: "center" }}>ترقّب عروضنا وإعلاناتنا قريباً هون </p>
+          <p style={{ fontSize: 13.5, color: THEME.textSecondary, margin: 0, textAlign: "center" }}>ترقّب عروضنا وإعلاناتنا قريباً  </p>
         )}
       </div>
     </div>
