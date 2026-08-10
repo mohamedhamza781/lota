@@ -1343,6 +1343,43 @@ function QrIcon({ color = "currentColor" }) {
   );
 }
 
+// شاشة تحميل أولية - بتظهر بس لأجزاء من الثانية عادة، قبل ما توصل بيانات
+// المنشأة (وفيها لونها الخاص) من السيرفر لأول مرة. عن قصد ما بتستخدم
+// ThemeContext إطلاقاً (بيضة بيضاء + سبينر محايد) - لأنه أصلاً هدفها
+// نستنى لحد ما نعرف لون المنشأة الحقيقي، فما في معنى نلوّنها بلون افتراضي
+// مؤقت (كان قبل هيك في "ومضة" رمادي قبل ما ينقلب للون الحقيقي - شوف
+// DEFAULT_THEME فوق لتفاصيل أكتر). لزوار عندهم هوية المنشأة محفوظة محلياً
+// من زيارة سابقة (brandCacheKey بـWebChat الرئيسي)، هاي الشاشة عملياً ما
+// بتنعرض أبداً (البيانات جاهزة فوراً من الكاش).
+function InitialLoadingScreen() {
+  return (
+    <div
+      style={{
+        height: "100dvh",
+        width: "100%",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 14,
+        background: "#FFFFFF",
+      }}
+    >
+      <div
+        style={{
+          width: 38,
+          height: 38,
+          borderRadius: "50%",
+          border: "3px solid #E5E7EB",
+          borderTopColor: "#9CA3AF",
+          animation: "initialLoadingSpin 0.8s linear infinite",
+        }}
+      />
+      <style>{`@keyframes initialLoadingSpin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
+}
+
 // شاشة "لازم تمسح QR" - بتظهر بس لما ما في chatId محفوظ محلياً (يعني ما
 // عندوش حساب أصلاً بهاد الجهاز/المتصفح) وبنفس الوقت الرابط الحالي ما جاي
 // من مسح QR فعلي (بدون ?src=qr - شوف viaQr بـWebChat الرئيسي). هاي أول
@@ -2847,10 +2884,11 @@ export default function WebChat() {
       .catch(() => {
         // فشل الطلب (غالباً انقطاع نت) - منرجع لآخر نسخة محفوظة محلياً
         // بدل ما تضل تبويبات "الرئيسية"/"الديلفري" فاضية تماماً
+        let brand = null;
         try {
           const cached = localStorage.getItem(brandCacheKey);
           if (cached) {
-            const brand = JSON.parse(cached);
+            brand = JSON.parse(cached);
             setDeliveryWhatsAppNumber(brand.deliveryWhatsAppNumber || "");
             setPromoText(brand.promoText || "");
             setPromotions(brand.promotions || []);
@@ -2859,6 +2897,11 @@ export default function WebChat() {
         } catch {
           // تجاهل
         }
+        // 🩹 مهم نحط earlyInfo (ولو {} فاضي لو ما في ولا كاش) حتى لو فشل
+        // الطلب - وإلا شاشة التحميل الأولية (InitialLoadingScreen) بتضل
+        // عالقة للأبد بانتظار بيانات ما رح توصل أبداً (شوف الشرط تحت قبل
+        // "if (screen === 'welcome')")
+        setEarlyInfo(brand || {});
       });
   }, [slug]);
 
@@ -3673,6 +3716,17 @@ export default function WebChat() {
     isAppInstalled,
     onInstallClick: handleInstallClick,
   };
+
+  // شاشة تحميل بيضاء بسيطة (سبينر بس) لحد ما توصل بيانات هوية المنشأة
+  // (earlyInfo من fetchWebChatInfo، أو establishment من socket.io) لأول
+  // مرة - بدل ما نعرض الهيدر بلون افتراضي مؤقت (رمادي) وبعدين "يقفز"
+  // للون المنشأة الحقيقي فور ما يوصل. بتنطبق بس على أول شاشتين ممكن
+  // يشوفهم عميل جديد (welcome/needQr) - عميل راجع أصلاً عنده الهوية
+  // البصرية محفوظة محلياً من زيارة سابقة (brandCacheKey فوق) فـearlyInfo
+  // بتوصله جاهزة فوراً من الكاش بدون ما تمر من هون أصلاً.
+  if (!earlyInfo && !establishment && (screen === "welcome" || screen === "needQr")) {
+    return <InitialLoadingScreen />;
+  }
 
   if (screen === "welcome") {
     return (
