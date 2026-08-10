@@ -579,7 +579,7 @@ function AccountView({ slug, chatId }) {
         <div style={{ fontWeight: 700, fontSize: 14.5, color: THEME.textPrimary, marginBottom: 10 }}>وجباتي المفضلة</div>
         {(!photos || photos.length === 0) && (
           <div style={{ fontSize: 13, color: THEME.textSecondary, background: "#fff", borderRadius: 14, padding: 16, border: `1px solid ${THEME.border}`, textAlign: "center" }}>
-            لسا ما رفعت أي صورة
+            لا يوجد إسم أي وجبة 
           </div>
         )}
         {/* كل وجبة مرة وحدة، وجنبها عدد مرات طلبها/رفعها (كاونتر) بدل نجمة النقاط */}
@@ -675,7 +675,7 @@ function CouponsView({ slug, chatId }) {
   if (loading) {
     return (
       <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: THEME.textSecondary, fontSize: 13.5 }}>
-        جاري تحميل هداياك...
+        جاري تحميل الهدايا...
       </div>
     );
   }
@@ -708,8 +708,7 @@ function CouponsView({ slug, chatId }) {
 
       {(!coupons || coupons.length === 0) && (
         <div style={{ fontSize: 13, color: THEME.textSecondary, background: "#fff", borderRadius: 14, padding: 20, border: `1px solid ${THEME.border}`, textAlign: "center" }}>
-          ما في هدايا متاحة حالياً
-        </div>
+لايوجد رصيد هدايا حالياً        </div>
       )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -1252,7 +1251,7 @@ function DeliveryView({ deliveryWhatsAppNumber, establishmentName, logoUrl }) {
           <DirectionsBikeOutlinedIcon/>
           
           <p style={{ fontSize: 14, lineHeight: 1.9, color: THEME.textPrimary, margin: 0 }}>
-            بدك توصيل؟ تواصل معنا مباشرة عالواتساب وخلّينا نجهّزلك طلبك.
+            تواصل مباشر على الواتساب لتجهيز طلبك
           </p>
           <a
             href={`https://wa.me/${cleanNumber}`}
@@ -2583,8 +2582,8 @@ function IntroScreen({ name, establishmentName, logoUrl, onContinue, installBann
             onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.98)")}
             onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
           >
-            يلا نبدأ
-          </button>
+إنطلق الآن          
+</button>
         </div>
 
         <div style={{ textAlign: "center", fontSize: 10, color: THEME.textSecondary || "#94A3B8", opacity: 0.6, padding: "10px 0 2px", width: "100%", maxWidth: 380 }}>
