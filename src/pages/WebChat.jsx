@@ -1624,6 +1624,13 @@ function WelcomeScreen({ slug, onSubmit, installBannerProps, logoUrl: earlyLogoU
           و"chat" بعد ما يصير عند العميل حساب وchatId محفوظ (آمن وقتها
           لأنه حتى لو الاختصار فتح بدون إشارة QR، عنده chatId محفوظ أصلاً
           فبيكمّل نفس جلسته عادي، ما في داعي لإشارة QR إطلاقاً). */}
+      {/* 🔄 [تراجع مقصود عن الإصلاح الجذري اللي فوق] بطلب صريح: البانر
+          هلق بيظهر بكل شاشات شات الويب من ضمنهم شاشة welcome، حتى قبل ما
+          يخلص العميل التسجيل - انتبه: هاد بيرجّع خطر معروف (شوف الشرح
+          المطوّل فوق عند تعريف الحاوية): لو العميل ثبّت الاختصار وهو لسا
+          هون (قبل ما يمسح QR/يسجّل)، الاختصار ممكن يفتح بدون إشارة "جاي
+          من QR" على آيفون تحديداً. لو رجعت مشكلة "عميل ثبّت الاختصار
+          وطلعله يسجّل بيانات من جديد كل مرة" ابدأ الفحص من هون. */}
       {installBannerProps && <InstallBanner {...installBannerProps} />}
 
       <div
@@ -3783,12 +3790,12 @@ export default function WebChat() {
         <WelcomeScreen
           slug={slug}
           onSubmit={handleWelcomeSubmit}
-          // 🩹 [إصلاح جذري] ما منمرر installBannerProps هون عن قصد - شوف
-          // التعليق المطوّل جوا WelcomeScreen نفسها عند مكان عرض
-          // InstallBanner لتفاصيل السبب الكامل (ملخص: منع تثبيت اختصار
-          // قبل ما يخلص التسجيل، لأنه آيفون ما بيضمن وصول إشارة "مسحت QR"
-          // للاختصار لو انثبّت من هون).
-          installBannerProps={null}
+          // 🔄 [تراجع مقصود] كنا نمرر null هون عن قصد لمنع التثبيت قبل
+          // خلاص التسجيل (شوف الشرح المطوّل جوا WelcomeScreen نفسها) -
+          // هلق بطلب صريح رجّعنا تمرير installBannerProps الحقيقية عشان
+          // البانر يظهر بكل الشاشات. الخطر المعروف (فقدان إشارة QR على
+          // آيفون لو انثبّت من هون) موثّق بالتعليق جوا WelcomeScreen.
+          installBannerProps={installBannerProps}
           logoUrl={establishment?.establishmentLogo || earlyInfo?.logoUrl}
           establishmentName={establishment?.establishmentName || earlyInfo?.name}
           externalError={registrationError}
