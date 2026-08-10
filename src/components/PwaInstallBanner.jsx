@@ -11,8 +11,16 @@ import { tokens } from "../theme/theme";
 // هاد المكوّن يترندر) - هيك ما منفوّت الفرصة لو الحدث انطلق بلحظة تحميل
 // الصفحة قبل ما القائمة تفتح.
 const STORAGE_KEY = "lotality_admin_install_prompt_last_shown";
-const COOLDOWN_MS = 24 * 60 * 60 * 1000; // مرة كل ٢٤ ساعة كحد أقصى
-const SHOW_DELAY_MS = 1500; // تأخير بسيط عشان ما يقاطع أول لحظة تحميل الصفحة
+const COOLDOWN_MS = 24 * 60 * 60 * 1000; // مرة كل ٢٤ ساعة كحد أقصى (Android فقط)
+const SHOW_DELAY_MS = 1500; // تأخير بسيط عشان ما يقاطع أول لحظة تحميل الصفحة (Android فقط)
+
+// على آيفون، سفاري والاختصار المضاف للشاشة الرئيسية عندهم تخزين منفصل
+// تماماً (localStorage/الجلسة) - فلو حد سجّل دخول من سفاري وبعدين فتح
+// الاختصار، بيطلب تسجيل دخول من جديد لأنه التوكن ما ضل معه. الحل الوحيد
+// هو إنه يسجّل دخوله من جوا الاختصار مباشرة من أول مرة. عشان هيك، لآيفون
+// تحديداً: ما منستنى (SHOW_DELAY_MS)، وما منحترم الـ cooldown العادي إلا
+// إذا ثبّت التطبيق فعلياً (مش بس سكّر البانر) - لازم يضل يشوفه لحد ما يثبّت.
+const IOS_DISMISS_COOLDOWN_MS = 60 * 60 * 1000; // ساعة وحدة إذا سكّره بس بيرجع يذكّره (مش يوم كامل)
 
 export function PwaInstallBanner() {
   const [deferredPrompt, setDeferredPrompt] = useState(() => window.__deferredInstallPrompt || null);
@@ -57,6 +65,22 @@ export function PwaInstallBanner() {
 
   useEffect(() => {
     if (!eligible) return;
+
+    // آيفون: يظهر فوراً بدون تأخير، وبدون ما ننتظر cooldown اليوم الكامل -
+    // هون بالذات لازم يكون أول شي يشوفه المستخدم قبل ما يحاول يسجّل دخول.
+    if (isIOS) {
+      let lastDismissed = 0;
+      try {
+        lastDismissed = Number(localStorage.getItem(STORAGE_KEY)) || 0;
+      } catch {
+        // تجاهل
+      }
+      if (Date.now() - lastDismissed < IOS_DISMISS_COOLDOWN_MS) return;
+      setVisible(true);
+      return;
+    }
+
+    // Android/غيره: نفس السلوك القديم (تأخير بسيط + cooldown يوم كامل)
     let lastShown = 0;
     try {
       lastShown = Number(localStorage.getItem(STORAGE_KEY)) || 0;
@@ -67,11 +91,13 @@ export function PwaInstallBanner() {
 
     const showTimer = setTimeout(() => setVisible(true), SHOW_DELAY_MS);
     return () => clearTimeout(showTimer);
-  }, [eligible]);
+  }, [eligible, isIOS]);
 
   function dismiss() {
     setVisible(false);
     try {
+      // على آيفون منخزّن وقت "سكّر البانر" مش وقت "ثبّت" - هيك برجع يظهر
+      // بعد ساعة (مش يوم كامل) لحد ما يثبّت فعلياً، لأنه critical لتسجيل الدخول
       localStorage.setItem(STORAGE_KEY, String(Date.now()));
     } catch {
       // تجاهل
@@ -145,7 +171,9 @@ export function PwaInstallBanner() {
             <HomeRoundedIcon fontSize="small" />
           </Box>
           <Typography sx={{ flex: 1, fontFamily: '"IBM Plex Sans Arabic"', fontWeight: 700, fontSize: "0.82rem" }}>
-            ثبّت لوحة التحكم على شاشتك الرئيسية
+            {isIOS
+              ? "ثبّت التطبيق وسجّل دخولك منه مباشرة (بدون هيك رح يطلب تسجيل دخول من جديد كل مرة)"
+              : "ثبّت لوحة التحكم على شاشتك الرئيسية"}
           </Typography>
           <Button
             onClick={handleInstallClick}
