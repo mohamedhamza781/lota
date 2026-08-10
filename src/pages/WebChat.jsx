@@ -3235,7 +3235,20 @@ export default function WebChat() {
 
     socket.on("bot_message", (data) => {
       setBotTyping(false);
-      pushMessage({ from: "bot", text: data.text, at: data.at });
+
+      // خلال "هاندشيك" التسجيل التلقائي (ترحيب+طلب الاسم، شكراً+طلب
+      // الرقم، تأكيد إنشاء العضوية) ما منعرض ولا وحدة من هاي الرسائل
+      // كفقاعات محادثة - كلها بتصير وراء شاشة "جاري إنشاء حسابك..."
+      // (registering)، العميل أصلاً مش شايفها لحظة صيرورتها. قبل هالإصلاح
+      // كانت تتخزن بمصفوفة الرسائل رغم هيك، فلما ينتقل لاحقاً لتبويب
+      // الشات الحقيقي كانت تطلع فجأة كل هالرسائل التقنية سوا. هلق منعرض
+      // ردود البوت بس لو التسجيل خلص أصلاً (idle = عميل قديم مسجل من
+      // زمان، done = تسجيل جديد خلص للتو) - أي رسالة بعد هيك بتظهر طبيعي.
+      const isRegistrationHandshake =
+        registrationStepRef.current !== "idle" && registrationStepRef.current !== "done";
+      if (!isRegistrationHandshake) {
+        pushMessage({ from: "bot", text: data.text, at: data.at });
+      }
 
       // كشف رسالة "ملخص نهاية الزيارة" (نص ثابت بالقالب، شوف
       // whatsapp.service.js) - لما توصل، معناها الزيارة خلصت فعلياً،
@@ -3274,8 +3287,9 @@ export default function WebChat() {
         // هاد التبادل كله صايرة وراء شاشة "جاري إنشاء حسابك..." (screen
         // === "registering")، يعني العميل مش شايف ولا رسالة منه أصلاً - فما
         // في داعي لأي تأخير اصطناعي (كان أصلاً بس عشان يحاكي إيقاع بشري
-        // بمحادثة ظاهرة، وهاي مش ظاهرة إطلاقاً)
-        pushMessage({ from: "me", text: name, at: new Date().toISOString() });
+        // بمحادثة ظاهرة، وهاي مش ظاهرة إطلاقاً). وما منعرض فقاعة "الاسم"
+        // هاي بالمحادثة (شوف isRegistrationHandshake فوق) - بس منبعتها
+        // فعلياً للسيرفر عشان التسجيل يكمل طبيعي.
         socketRef.current?.emit("client_message", { text: name, silent: true, geo: geoRef.current });
         return;
       }
@@ -3288,7 +3302,8 @@ export default function WebChat() {
         if (looksLikePhoneRequest) {
           const phone = pendingRegistrationRef.current.phone;
           registrationStepRef.current = "awaiting_membership_confirmation";
-          pushMessage({ from: "me", text: phone, at: new Date().toISOString() });
+          // ما منعرض فقاعة "الرقم" بالمحادثة (نفس منطق الاسم فوق) - بس
+          // منبعته فعلياً للسيرفر عشان التسجيل يكمل طبيعي.
           socketRef.current?.emit("client_message", { text: phone, silent: true, geo: geoRef.current });
         }
       }
