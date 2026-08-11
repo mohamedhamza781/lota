@@ -2797,6 +2797,23 @@ export default function WebChat() {
   // بنستخدمها لعميل راجع (chatId موجود مسبقاً) عشان نحسب زيارة جديدة بس
   // مرة وحدة لكل اتصال، مش في كل مرة السوكيت يعيد الاتصال تلقائياً
   const visitTriggerSentRef = useRef(false);
+  // 🩹 [إصلاح] حماية إضافية ضد ظهور فقاعة الاسم/الرقم مكررة: لو صار
+  // انقطاع نت/إعادة اتصال بمنتصف هاندشيك التسجيل بالظبط باللحظة يلي
+  // وصل فيها رد البوت "أهلاً بكـ...ابعت اسمك" أو "ابعت رقمك"، ممكن نفس
+  // الرد يوصل تاني (من السيرفر، أو من إعادة معالجة الحدث)، فمنضل نطبع
+  // نفس الفقاعة كل مرة. هالـref بيضمن كل فقاعة (اسم/رقم) تتعرض وتتبعت
+  // مرة وحدة بالظبط طول عمر محاولة التسجيل هاي، بغض النظر عن كم مرة
+  // وصل رد البوت المطابق فعلياً.
+  const nameBubbleSentRef = useRef(false);
+  const phoneBubbleSentRef = useRef(false);
+  // 🩹 [إصلاح] معرّفات ثابتة (clientMsgId) لكل رسالة من رسائل هاندشيك
+  // التسجيل الثلاث (تفعيل صامت بالاسم، الاسم الحقيقي، الرقم الحقيقي) -
+  // نفس آلية idempotency الموجودة أصلاً بالباك إند لرسائل outbox
+  // العادية (شوف client_message بـwebChat.service.js) بس هون كانت
+  // ناقصة تحديداً لرسائل الهاندشيك، فلو انبعتت أكتر من مرة (انقطاع نت/
+  // إعادة اتصال بمنتصف التسجيل) كان الباك إند يعالجها وكأنها رسالتين
+  // منفصلتين - فتطلع فقاعة الاسم (أو الرقم) مكررة بالمحادثة.
+  const handshakeMsgIdsRef = useRef({ activation: null, name: null, phone: null });
 
   // ماسح QR داخل الشات (شوف QrRescanIcon/InChatQrScanner فوق) - showQrScanner
   // بيتحكم بظهور الكاميرا، وqrIconTick بس عداد بسيط بنزيده كل دقيقة (ومباشرة
@@ -3228,7 +3245,13 @@ export default function WebChat() {
       const pending = pendingRegistrationRef.current;
       if (pending && registrationStepRef.current === "idle") {
         registrationStepRef.current = "awaiting_welcome";
-        socket.emit("client_message", { text: pending.name, silent: true, hideBubble: true, geo: geoRef.current });
+        socket.emit("client_message", {
+          text: pending.name,
+          silent: true,
+          hideBubble: true,
+          geo: geoRef.current,
+          clientMsgId: handshakeMsgIdsRef.current.activation,
+        });
       } else if (!pending && !visitTriggerSentRef.current) {
         // عميل راجع (chatId موجود مسبقاً) - يعني هاد مسح QR جديد على
         // طاولة، تماماً متل ما بوت الواتساب بيتعامل مع مسح QR متكرر: أي
@@ -3293,7 +3316,11 @@ export default function WebChat() {
       // بالضبط: أول رسالة = زي مسح QR، والاسم الحقيقي لازم يجي كرسالة
       // تانية منفصلة). فمنبعت الاسم من جديد هلق، وهاد الرد هيك بيتم قبوله
       // فعلياً كاسم.
-      if (registrationStepRef.current === "awaiting_welcome" && pendingRegistrationRef.current) {
+      if (
+        registrationStepRef.current === "awaiting_welcome" &&
+        pendingRegistrationRef.current &&
+        !nameBubbleSentRef.current
+      ) {
         const name = pendingRegistrationRef.current.name;
         registrationStepRef.current = "awaiting_phone_request";
         // 🩹 [إصلاح] هلق منعرض فقاعة الاسم فعلياً بالمحادثة (بطلب صريح) -
@@ -3302,8 +3329,17 @@ export default function WebChat() {
         // لأي تأخير اصطناعي هون رغم إنها هلق ظاهرة - أصلاً صايرة وراء
         // شاشة "جاري إنشاء حسابك..." فما رح يشوفها العميل تتكتب حرف حرف
         // بأي حال، بتظهر جاهزة لما ينتقل لتبويب الشات.
+        // 🩹 [إصلاح إضافي] nameBubbleSentRef + clientMsgId ثابت: لو نفس
+        // رد البوت ("ابعت اسمك") وصل أكتر من مرة (مثلاً بعد إعادة اتصال)
+        // ما منكرر الفقاعة ولا الإرسال - مرة وحدة بس لكل محاولة تسجيل.
+        nameBubbleSentRef.current = true;
         pushMessage({ from: "me", text: name, at: new Date().toISOString() });
-        socketRef.current?.emit("client_message", { text: name, silent: true, geo: geoRef.current });
+        socketRef.current?.emit("client_message", {
+          text: name,
+          silent: true,
+          geo: geoRef.current,
+          clientMsgId: handshakeMsgIdsRef.current.name,
+        });
         return;
       }
 
@@ -3312,12 +3348,19 @@ export default function WebChat() {
       // يكتبه يدوياً (هو أصلاً كتبه قبل شوي بالفورم)
       if (registrationStepRef.current === "awaiting_phone_request" && pendingRegistrationRef.current) {
         const looksLikePhoneRequest = data.text?.includes("رقمـ") || (data.text?.includes("رقم") && data.text?.includes("واتس"));
-        if (looksLikePhoneRequest) {
+        if (looksLikePhoneRequest && !phoneBubbleSentRef.current) {
           const phone = pendingRegistrationRef.current.phone;
           registrationStepRef.current = "awaiting_membership_confirmation";
-          // 🩹 [إصلاح] نفس منطق الاسم فوق - منعرض فقاعة الرقم فعلياً
+          // 🩹 [إصلاح] نفس منطق الاسم فوق - منعرض فقاعة الرقم فعلياً، مرة
+          // وحدة بس (phoneBubbleSentRef + clientMsgId ثابت لنفس السبب)
+          phoneBubbleSentRef.current = true;
           pushMessage({ from: "me", text: phone, at: new Date().toISOString() });
-          socketRef.current?.emit("client_message", { text: phone, silent: true, geo: geoRef.current });
+          socketRef.current?.emit("client_message", {
+            text: phone,
+            silent: true,
+            geo: geoRef.current,
+            clientMsgId: handshakeMsgIdsRef.current.phone,
+          });
         }
       }
 
@@ -3391,6 +3434,16 @@ export default function WebChat() {
   function handleWelcomeSubmit({ name, phone }) {
     setRegistrationError("");
     pendingRegistrationRef.current = { name, phone };
+    // 🩹 [إصلاح] تصفير حراس الفقاعة المكررة مع كل محاولة تسجيل جديدة
+    // (مثلاً لو التسجيل الأول فشل ورجع العميل عبى شاشة الترحيب وأعاد
+    // الإرسال - هاي محاولة جديدة، مفروض تسمح بفقاعة اسم/رقم جديدة)
+    nameBubbleSentRef.current = false;
+    phoneBubbleSentRef.current = false;
+    handshakeMsgIdsRef.current = {
+      activation: `hs-activation-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      name: `hs-name-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      phone: `hs-phone-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    };
     setWelcomeName(name);
     setScreen("registering");
   }
