@@ -579,7 +579,7 @@ function AccountView({ slug, chatId }) {
         <div style={{ fontWeight: 700, fontSize: 14.5, color: THEME.textPrimary, marginBottom: 10 }}>وجباتي المفضلة</div>
         {(!photos || photos.length === 0) && (
           <div style={{ fontSize: 13, color: THEME.textSecondary, background: "#fff", borderRadius: 14, padding: 16, border: `1px solid ${THEME.border}`, textAlign: "center" }}>
-            لا يوجد إسم أي وجبة 
+            لسا ما رفعت أي صورة
           </div>
         )}
         {/* كل وجبة مرة وحدة، وجنبها عدد مرات طلبها/رفعها (كاونتر) بدل نجمة النقاط */}
@@ -675,7 +675,7 @@ function CouponsView({ slug, chatId }) {
   if (loading) {
     return (
       <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: THEME.textSecondary, fontSize: 13.5 }}>
-        جاري تحميل الهدايا...
+        جاري تحميل هداياك...
       </div>
     );
   }
@@ -708,7 +708,8 @@ function CouponsView({ slug, chatId }) {
 
       {(!coupons || coupons.length === 0) && (
         <div style={{ fontSize: 13, color: THEME.textSecondary, background: "#fff", borderRadius: 14, padding: 20, border: `1px solid ${THEME.border}`, textAlign: "center" }}>
-لايوجد رصيد هدايا حالياً        </div>
+          ما في هدايا متاحة حالياً
+        </div>
       )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -998,7 +999,7 @@ function HomeView({ logoUrl, establishmentName, promoText, promotions = [] }) {
         {promoText ? (
           <p style={{ fontSize: 14, lineHeight: 1.9, color: THEME.textPrimary, whiteSpace: "pre-wrap", margin: 0, textAlign: "center" }}>{promoText}</p>
         ) : (
-          <p style={{ fontSize: 13.5, color: THEME.textSecondary, margin: 0, textAlign: "center" }}>ترقّب عروضنا وإعلاناتنا قريباً  </p>
+          <p style={{ fontSize: 13.5, color: THEME.textSecondary, margin: 0, textAlign: "center" }}>ترقّب عروضنا وإعلاناتنا قريباً هون </p>
         )}
       </div>
     </div>
@@ -1251,7 +1252,7 @@ function DeliveryView({ deliveryWhatsAppNumber, establishmentName, logoUrl }) {
           <DirectionsBikeOutlinedIcon/>
           
           <p style={{ fontSize: 14, lineHeight: 1.9, color: THEME.textPrimary, margin: 0 }}>
-            تواصل مباشر على الواتساب لتجهيز طلبك
+            بدك توصيل؟ تواصل معنا مباشرة عالواتساب وخلّينا نجهّزلك طلبك.
           </p>
           <a
             href={`https://wa.me/${cleanNumber}`}
@@ -2582,8 +2583,8 @@ function IntroScreen({ name, establishmentName, logoUrl, onContinue, installBann
             onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.98)")}
             onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
           >
-إنطلق الآن          
-</button>
+            يلا نبدأ
+          </button>
         </div>
 
         <div style={{ textAlign: "center", fontSize: 10, color: THEME.textSecondary || "#94A3B8", opacity: 0.6, padding: "10px 0 2px", width: "100%", maxWidth: 380 }}>
@@ -3209,13 +3210,14 @@ export default function WebChat() {
       // لو جاي من شاشة الترحيب (اسم/رقم جاهزين)، منبعت الاسم فوراً - هاي
       // أول رسالة "تواصل" بس (زي ما لو مسح QR لأول مرة)، والبوت هلق رح
       // يردّ برسالة ترحيب ويطلب الاسم رسمياً (مش هيك ماشي، شوف الشرح تحت).
-      // ما منظهرها كفقاعة بالمحادثة (pushMessage) - هاي بس تريغر تقني
-      // للبوت، مش رد حقيقي من العميل بعد؛ الفقاعة المرئية الوحيدة بتظهر
-      // لما يُعاد إرسال الاسم فعلياً كجواب حقيقي (شوف "بوت_message" تحت)
+      // 🩹 [إصلاح] hideBubble:true - هاي بس تريغر تقني للبوت، مش رد حقيقي
+      // من العميل بعد؛ نفس الاسم رح ينبعت تاني بعد شوي كجواب حقيقي (وهاد
+      // يلي بيظهر كفقاعة فعلياً - شوف "bot_message" تحت) - فبدون هالعلامة
+      // كان الاسم يطلع مرتين بالمحادثة (نفس الفقاعة بالضبط) بدل مرة وحدة.
       const pending = pendingRegistrationRef.current;
       if (pending) {
         registrationStepRef.current = "awaiting_welcome";
-        socket.emit("client_message", { text: pending.name, silent: true, geo: geoRef.current });
+        socket.emit("client_message", { text: pending.name, silent: true, hideBubble: true, geo: geoRef.current });
       } else if (!visitTriggerSentRef.current) {
         // عميل راجع (chatId موجود مسبقاً) - يعني هاد مسح QR جديد على
         // طاولة، تماماً متل ما بوت الواتساب بيتعامل مع مسح QR متكرر: أي
@@ -3223,7 +3225,7 @@ export default function WebChat() {
         // جديدة لو عدّت المدة، أو يتجاهل بصمت لو ضمن نفس الزيارة. هاي
         // الرسالة مش من كتابة العميل الفعلية، فما منظهرها بالمحادثة.
         visitTriggerSentRef.current = true;
-        socket.emit("client_message", { text: "•" });
+        socket.emit("client_message", { text: "•", hideBubble: true });
       }
     });
 
@@ -3283,12 +3285,13 @@ export default function WebChat() {
       if (registrationStepRef.current === "awaiting_welcome" && pendingRegistrationRef.current) {
         const name = pendingRegistrationRef.current.name;
         registrationStepRef.current = "awaiting_phone_request";
-        // هاد التبادل كله صايرة وراء شاشة "جاري إنشاء حسابك..." (screen
-        // === "registering")، يعني العميل مش شايف ولا رسالة منه أصلاً - فما
-        // في داعي لأي تأخير اصطناعي (كان أصلاً بس عشان يحاكي إيقاع بشري
-        // بمحادثة ظاهرة، وهاي مش ظاهرة إطلاقاً). وما منعرض فقاعة "الاسم"
-        // هاي بالمحادثة (شوف isRegistrationHandshake فوق) - بس منبعتها
-        // فعلياً للسيرفر عشان التسجيل يكمل طبيعي.
+        // 🩹 [إصلاح] هلق منعرض فقاعة الاسم فعلياً بالمحادثة (بطلب صريح) -
+        // مرة وحدة بس (هاي الإرسال الحقيقي، مش رسالة "التفعيل" الأولى
+        // يلي انبعتت hideBubble:true قبل شوي بنفس النص بالظبط). ما في داعي
+        // لأي تأخير اصطناعي هون رغم إنها هلق ظاهرة - أصلاً صايرة وراء
+        // شاشة "جاري إنشاء حسابك..." فما رح يشوفها العميل تتكتب حرف حرف
+        // بأي حال، بتظهر جاهزة لما ينتقل لتبويب الشات.
+        pushMessage({ from: "me", text: name, at: new Date().toISOString() });
         socketRef.current?.emit("client_message", { text: name, silent: true, geo: geoRef.current });
         return;
       }
@@ -3301,8 +3304,8 @@ export default function WebChat() {
         if (looksLikePhoneRequest) {
           const phone = pendingRegistrationRef.current.phone;
           registrationStepRef.current = "awaiting_membership_confirmation";
-          // ما منعرض فقاعة "الرقم" بالمحادثة (نفس منطق الاسم فوق) - بس
-          // منبعته فعلياً للسيرفر عشان التسجيل يكمل طبيعي.
+          // 🩹 [إصلاح] نفس منطق الاسم فوق - منعرض فقاعة الرقم فعلياً
+          pushMessage({ from: "me", text: phone, at: new Date().toISOString() });
           socketRef.current?.emit("client_message", { text: phone, silent: true, geo: geoRef.current });
         }
       }
