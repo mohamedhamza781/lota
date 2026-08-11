@@ -113,6 +113,7 @@ export default function Customers() {
   const [segment, setSegment] = useState("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [activePreset, setActivePreset] = useState("all"); // بيتزامن مع أزرار الفترات السريعة، وبينمسح لو المستخدم عدّل التاريخ يدويًا
   const [page, setPage] = useState(0);
   const rowsPerPage = 5;
 
@@ -167,6 +168,7 @@ export default function Customers() {
   }, [customers, query, segment, dateFrom, dateTo]);
 
   function applyQuickDateRange(preset) {
+    setActivePreset(preset);
     const today = new Date();
     const toStr = today.toISOString().slice(0, 10);
     if (preset === "all") {
@@ -197,6 +199,27 @@ export default function Customers() {
       setDateFrom(`${today.getFullYear()}-01-01`);
       setDateTo(toStr);
     }
+  }
+
+  // لو المستخدم عدّل تاريخ "من" أو "لغاية" يدويًا، ما عاد في زر فترة سريعة
+  // منطبق فعليًا - بنمسح التحديد عشان ما يضل شكله "مُفعّل" وهو مش صحيح
+  function handleManualDateChange(setter) {
+    return (e) => {
+      setter(e.target.value);
+      setActivePreset(null);
+      setPage(0);
+    };
+  }
+
+  const activeFilterCount = [query.trim() !== "", segment !== "all", dateFrom !== "", dateTo !== ""].filter(Boolean).length;
+
+  function clearAllFilters() {
+    setQuery("");
+    setSegment("all");
+    setDateFrom("");
+    setDateTo("");
+    setActivePreset("all");
+    setPage(0);
   }
 
   const paged = filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
@@ -447,8 +470,8 @@ export default function Customers() {
       )}
 
       {/* شريط أدوات الفلترة والبحث */}
-      <Stack spacing={2}>
-        <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ flexWrap: "wrap", rowGap: 1.5 }}>
+      <Stack spacing={1.5}>
+        <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ flexWrap: "wrap", rowGap: 1.5 }} alignItems={{ sm: "flex-start" }}>
           <TextField
             size="small"
             placeholder="بحث بالاسم، الهاتف، أو رقم العميل"
@@ -469,6 +492,7 @@ export default function Customers() {
           <TextField
             size="small"
             select
+            label="الفئة"
             value={segment}
             onChange={(e) => {
               setSegment(e.target.value);
@@ -487,10 +511,7 @@ export default function Customers() {
             type="date"
             label="آخر زيارة من"
             value={dateFrom}
-            onChange={(e) => {
-              setDateFrom(e.target.value);
-              setPage(0);
-            }}
+            onChange={handleManualDateChange(setDateFrom)}
             InputLabelProps={{ shrink: true }}
             sx={{ minWidth: 150, "& .MuiOutlinedInput-root": { borderRadius: "12px" } }}
           />
@@ -499,44 +520,63 @@ export default function Customers() {
             type="date"
             label="لغاية"
             value={dateTo}
-            onChange={(e) => {
-              setDateTo(e.target.value);
-              setPage(0);
-            }}
+            onChange={handleManualDateChange(setDateTo)}
             InputLabelProps={{ shrink: true }}
             sx={{ minWidth: 150, "& .MuiOutlinedInput-root": { borderRadius: "12px" } }}
           />
         </Stack>
 
-        {/* اختصارات الفترات الزمنية */}
-        <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", gap: 1 }}>
+        {/* اختصارات الفترات الزمنية + مسح الفلاتر */}
+        <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", gap: 1 }} alignItems="center">
           {[
             { key: "all", label: "كل الفترات" },
             { key: "today", label: "اليوم" },
             { key: "7d", label: "آخر ٧ أيام" },
             { key: "30d", label: "آخر ٣٠ يوم" },
             { key: "year", label: "هالسنة" },
-          ].map((p) => (
+          ].map((p) => {
+            const isActive = activePreset === p.key;
+            return (
+              <Chip
+                key={p.key}
+                size="small"
+                label={p.label}
+                onClick={() => {
+                  applyQuickDateRange(p.key);
+                  setPage(0);
+                }}
+                sx={{
+                  borderRadius: "10px",
+                  fontWeight: 600,
+                  fontSize: "0.78rem",
+                  cursor: "pointer",
+                  backgroundColor: isActive ? tokens.ink : tokens.surfaceAlt || "rgba(0,0,0,0.04)",
+                  color: isActive ? tokens.paper : tokens.ink,
+                  transition: "all 0.2s ease",
+                  "&:hover": { backgroundColor: tokens.ink, color: tokens.paper },
+                }}
+              />
+            );
+          })}
+
+          {activeFilterCount > 0 && (
             <Chip
-              key={p.key}
               size="small"
-              label={p.label}
-              onClick={() => {
-                applyQuickDateRange(p.key);
-                setPage(0);
-              }}
+              label={`مسح الفلاتر (${activeFilterCount})`}
+              onClick={clearAllFilters}
+              variant="outlined"
               sx={{
                 borderRadius: "10px",
                 fontWeight: 600,
                 fontSize: "0.78rem",
                 cursor: "pointer",
-                backgroundColor: tokens.surfaceAlt || "rgba(0,0,0,0.04)",
-                color: tokens.ink,
+                borderColor: tokens.hairline || "rgba(0,0,0,0.2)",
+                color: tokens.muted,
                 transition: "all 0.2s ease",
-                "&:hover": { backgroundColor: tokens.ink, color: tokens.paper },
+                "&:hover": { borderColor: "error.main", color: "error.main", backgroundColor: "rgba(211,47,47,0.04)" },
               }}
             />
-          ))}
+          )}
         </Stack>
       </Stack>
 
@@ -725,8 +765,25 @@ export default function Customers() {
               ))}
               {paged.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={8} align="center" sx={{ py: 5, color: "text.secondary", fontSize: "0.85rem" }}>
-                    لا يوجد عملاء مطابقون لبحثك
+                  <TableCell colSpan={8} align="center" sx={{ py: 5 }}>
+                    <Stack spacing={1} alignItems="center">
+                      <Typography sx={{ color: "text.secondary", fontSize: "0.85rem", fontFamily: '"IBM Plex Sans Arabic"' }}>
+                        {customers.length === 0
+                          ? "ما في عملاء لسا"
+                          : activeFilterCount > 0
+                          ? "ما في عملاء مطابقين للفلاتر المطبّقة"
+                          : "لا يوجد عملاء مطابقون لبحثك"}
+                      </Typography>
+                      {activeFilterCount > 0 && (
+                        <Button
+                          size="small"
+                          onClick={clearAllFilters}
+                          sx={{ color: tokens.ink, fontFamily: '"IBM Plex Sans Arabic"', fontWeight: 600, textTransform: "none" }}
+                        >
+                          مسح كل الفلاتر
+                        </Button>
+                      )}
+                    </Stack>
                   </TableCell>
                 </TableRow>
               )}
