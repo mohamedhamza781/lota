@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
+import * as XLSX from "xlsx";
 import {
   Box,
   Stack,
@@ -25,6 +26,7 @@ import {
   FormControlLabel,
 } from "@mui/material";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
+import FileDownloadRoundedIcon from "@mui/icons-material/FileDownloadRounded";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import RedeemRoundedIcon from "@mui/icons-material/RedeemRounded";
@@ -126,6 +128,46 @@ export default function Coupons() {
       );
     });
   }, [coupons, query]);
+
+  function handleExportExcel() {
+    const rows = filtered.map((c) => {
+      const status = couponStatus(c);
+      return {
+        "اسم العميل": c.customerId?.name || "عام (كل العملاء)",
+        "رقم الهاتف": c.customerId?.phone || "",
+        "كود الكوبون": c.code || "",
+        "نوع الخصم": c.discountType === "percentage" ? "نسبة مئوية" : "مبلغ ثابت",
+        "نسبة الخصم / الهدية": discountLabel(c),
+        "الوصف": c.description || "",
+        "من تاريخ": fmtDate(c.createdAt) || "",
+        "إلى تاريخ": c.expiresAt ? fmtDate(c.expiresAt) : "بلا تاريخ انتهاء",
+        "الحالة": status.label,
+        "عدد مرات الاستخدام": c.usedCount ?? 0,
+        "الحد الأقصى للاستخدام": c.maxUses != null ? c.maxUses : "بلا حد",
+      };
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    worksheet["!cols"] = [
+      { wch: 22 }, // اسم العميل
+      { wch: 14 }, // رقم الهاتف
+      { wch: 16 }, // كود الكوبون
+      { wch: 14 }, // نوع الخصم
+      { wch: 18 }, // نسبة الخصم / الهدية
+      { wch: 26 }, // الوصف
+      { wch: 14 }, // من تاريخ
+      { wch: 18 }, // إلى تاريخ
+      { wch: 10 }, // الحالة
+      { wch: 16 }, // عدد مرات الاستخدام
+      { wch: 18 }, // الحد الأقصى للاستخدام
+    ];
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "الهدايا والكوبونات");
+
+    const todayStr = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(workbook, `كوبونات-${establishment?.name || establishmentId}-${todayStr}.xlsx`);
+  }
 
   function openAddDialog() {
     setEditingId(null);
@@ -246,24 +288,42 @@ export default function Coupons() {
             أنشئ كوبونات خصم عامة لكل العملاء أو كوبونات شخصية لعميل محدد
           </Typography>
         </Stack>
-        <Button
-          onClick={openAddDialog}
-          variant="contained"
-          startIcon={<AddRoundedIcon />}
-          sx={{
-            alignSelf: { xs: "flex-start", sm: "center" },
-            backgroundColor: tokens.ink,
-            color: tokens.paper,
-            fontFamily: '"IBM Plex Sans Arabic"',
-            fontWeight: 600,
-            borderRadius: "12px",
-            px: 2.5,
-            boxShadow: "0 4px 14px rgba(0,0,0,0.12)",
-            "&:hover": { backgroundColor: tokens.inkSoft || tokens.ink, boxShadow: "0 6px 18px rgba(0,0,0,0.18)" },
-          }}
-        >
-          كوبون جديد
-        </Button>
+        <Stack direction="row" spacing={1.5} sx={{ alignSelf: { xs: "flex-start", sm: "center" } }}>
+          <Button
+            onClick={handleExportExcel}
+            variant="outlined"
+            startIcon={<FileDownloadRoundedIcon />}
+            disabled={filtered.length === 0}
+            sx={{
+              borderColor: tokens.hairline || "rgba(0,0,0,0.12)",
+              color: tokens.ink,
+              fontFamily: '"IBM Plex Sans Arabic"',
+              fontWeight: 600,
+              borderRadius: "12px",
+              px: 2.5,
+              "&:hover": { borderColor: tokens.ink, backgroundColor: "rgba(0,0,0,0.03)" },
+            }}
+          >
+            تصدير إكسل للكاشير
+          </Button>
+          <Button
+            onClick={openAddDialog}
+            variant="contained"
+            startIcon={<AddRoundedIcon />}
+            sx={{
+              backgroundColor: tokens.ink,
+              color: tokens.paper,
+              fontFamily: '"IBM Plex Sans Arabic"',
+              fontWeight: 600,
+              borderRadius: "12px",
+              px: 2.5,
+              boxShadow: "0 4px 14px rgba(0,0,0,0.12)",
+              "&:hover": { backgroundColor: tokens.inkSoft || tokens.ink, boxShadow: "0 6px 18px rgba(0,0,0,0.18)" },
+            }}
+          >
+            كوبون جديد
+          </Button>
+        </Stack>
       </Stack>
 
       {/* البحث */}
