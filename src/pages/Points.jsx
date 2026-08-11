@@ -43,8 +43,6 @@ const EMPTY_PERCENTAGE_RULE = {
   selectedCustomerIds: [],
 };
 
-const ROUNDING_LABELS = { floor: "لتحت", ceil: "لفوق", round: "لأقرب رقم" };
-
 function fmtDateTime(d) {
   if (!d) return "—";
   try {
@@ -185,54 +183,7 @@ export default function Points() {
 
       <Box sx={{ overflow: "hidden" }}>
         <Grid container spacing={2.5}>
-          <Grid item xs={12} md={5}>
-            <Paper elevation={0} sx={{ p: 2.5, height: "100%" }}>
-              <SectionHeader title="معادلة النقاط الحالية" />
-              {pointsRule ? (
-                <Stack spacing={2}>
-                  <Stack
-                    direction="row"
-                    alignItems="center"
-                    justifyContent="space-between"
-                    sx={{ p: 1.5, borderRadius: 3, border: `1px solid ${tokens.hairline}` }}
-                  >
-                    <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                      كل {pointsRule.currencyPerPoint} من العملة = نقطة واحدة
-                    </Typography>
-                    <Chip
-                      size="small"
-                      label={pointsRule.isActive ? "مفعّلة" : "متوقفة"}
-                      sx={{
-                        backgroundColor: pointsRule.isActive ? tokens.ink : tokens.surfaceAlt,
-                        color: pointsRule.isActive ? tokens.paper : tokens.muted,
-                      }}
-                    />
-                  </Stack>
-                  <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                    وضع التقريب: {ROUNDING_LABELS[pointsRule.roundingMode] || pointsRule.roundingMode}
-                  </Typography>
-
-                  {/* معادلة الاستبدال - تحويل النقاط لخصم نقدي مباشر */}
-                  <Stack
-                    direction="row"
-                    alignItems="center"
-                    justifyContent="space-between"
-                    sx={{ p: 1.5, borderRadius: 3, border: `1px solid ${tokens.hairline}`, backgroundColor: tokens.surfaceAlt }}
-                  >
-                    <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                      كل {(pointsRule.pointsPerCurrencyDiscount ?? 100).toLocaleString("ar")} نقطة = خصم 1 ₪
-                    </Typography>
-                  </Stack>
-                </Stack>
-              ) : (
-                <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                  {loading ? "جاري التحميل…" : "ما في معادلة نقاط محدّدة لهاي المنشأة بعد."}
-                </Typography>
-              )}
-            </Paper>
-          </Grid>
-
-          <Grid item xs={12} md={7}>
+          <Grid item xs={12}>
             <Paper elevation={0} sx={{ p: 2.5, height: "100%" }}>
               <SectionHeader title="آخر عمليات النقاط" />
               {transactions.length === 0 ? (
