@@ -1974,21 +1974,25 @@ function WelcomeScreen({ slug, onSubmit, installBannerProps, logoUrl: earlyLogoU
 // شاشة تحميل بسيطة - بتظهر بينما التسجيل عم يصير فعلياً بالخلفية (الاسم
 // والرقم عم يترسلوا تلقائياً عبر نفس منطق البوت المُختبر، بدون ما نوري
 // المستخدم تفاصيل هاي الخطوة)
-function RegisteringScreen({ name, logoUrl, establishmentName }) {
+function RegisteringScreen({ name, logoUrl, establishmentName, verifying = false }) {
   const THEME = useContext(ThemeContext);
   const firstName = (name || "").trim().split(/\s+/)[0] || "";
   const darkGreen = THEME.headerBg || "#64748B";
 
-  // رسائل متغيّرة أثناء الانتظار - بتحسّن إحساس المستخدم بالتقدّم (مش نفس
-  // النص الثابت طول الوقت)، وبتذكّره بفوائد المجتمع بنفس الوقت
+  // 🩹 [إصلاح] لعميل راجع (chatId محفوظ) عم منتحقق بس من حسابه - مش
+  // بنسجّله من جديد، فنص الخطوات والعنوان لازم يعكسوا هيك (مش "جاري
+  // إنشاء حسابك")
   const steps = useMemo(
-    () => [
-      "جاري التحقق من بياناتك",
-      "جاري تجهيز عضويتك  ",
-      "بقيت ثوانٍ قليلة لتصبح عضواً في مجتمع إيوان وتبدأ رحلتك معنا",
-    "يرجى عدم إغلاق الصفحة",
-    ],
-    []
+    () =>
+      verifying
+        ? ["جاري التحقق من حسابك", "لحظات ونكون جاهزين"]
+        : [
+            "جاري التحقق من بياناتك",
+            "جاري تجهيز عضويتك  ",
+            "بقيت ثوانٍ قليلة لتصبح عضواً في مجتمع إيوان وتبدأ رحلتك معنا",
+            "يرجى عدم إغلاق الصفحة",
+          ],
+    [verifying]
   );
   const [stepIndex, setStepIndex] = useState(0);
 
@@ -2069,7 +2073,7 @@ function RegisteringScreen({ name, logoUrl, establishmentName }) {
         </div>
 
         <div style={{ fontSize: 16.5, fontWeight: 800, color: THEME.textPrimary || "#0F172A", textAlign: "center", letterSpacing: "-0.01em" }}>
-          {firstName ? `جاري إنشاء حسابك يا ${firstName}` : "جاري إنشاء حسابك"}
+          {verifying ? "جاري التحقق من حسابك" : firstName ? `جاري إنشاء حسابك يا ${firstName}` : "جاري إنشاء حسابك"}
         </div>
 
         <div
@@ -2749,8 +2753,18 @@ export default function WebChat() {
   // "welcome" = شاشة الترحيب (فورم الاسم/الرقم)، "registering" = شاشة تحميل
   // بسيطة أثناء ما التسجيل بيصير بالخلفية (بدون ما نوري المحادثة الفعلية)،
   // "intro" = شاشة ترحيبية بعد التسجيل (فكرة المجتمع وفوائده، بدون تفاصيل
-  // أرقام)، "chat" = المحادثة الفعلية. لو عنده chatId محفوظ من قبل (زار
-  // قبل هيك)، منتخطى كل هاي الشاشات ومنروح مباشرة للمحادثة.
+  // أرقام)، "chat" = المحادثة الفعلية.
+  //
+  // 🩹 [إصلاح] "verifying" = شاشة تحميل بسيطة (زي "registering") بتظهر
+  // لو عنده chatId محفوظ من زيارة سابقة، لحد ما يتأكد فعلياً من السيرفر
+  // إنه حسابه لسا موجود قبل ما يفتح واجهة المحادثة الكاملة. قبل هالإصلاح
+  // كنا منروح مباشرة لشاشة "chat" بمجرد وجود chatId محلي بدون أي تأكد
+  // مسبق - فلو صاحب المنشأة حذف العميل من الداشبورد ورجع العميل يفتح
+  // اختصاره المحفوظ، كان يشوف واجهة المحادثة الكاملة تظهر لثوانٍ (بواسطة
+  // البيانات القديمة المحفوظة محلياً) قبل ما يرجع فجأة لشاشة التسجيل بعد
+  // ما يوصل رد السيرفر ويكتشف إنه الحساب محذوف - فلاش مربك وغير مرغوب.
+  // هلق منستنى تأكيد السيرفر الصريح (customerExists) قبل ما نعرض أي شي
+  // من واجهة المحادثة نفسها.
   //
   // ⚠️ ملاحظة مهمة: قبل هيك كان في شاشة رابعة ("needQr") بتظهر لو ما
   // عنده chatId ولا وصل من رابط فيه علامة مسح QR فعلي - بس الاعتماد على
@@ -2773,7 +2787,7 @@ export default function WebChat() {
     } catch {
       // تجاهل - localStorage مش متاح (وضع خاص)
     }
-    if (localStorage.getItem(storageKey)) return "chat";
+    if (localStorage.getItem(storageKey)) return "verifying";
     return "welcome";
   });
   const [deliveryWhatsAppNumber, setDeliveryWhatsAppNumber] = useState("");
@@ -3119,7 +3133,11 @@ export default function WebChat() {
   // صندوق الكتابة)، لحد ما النت يرجع ويتصل عادي (بلحظتها منستبدلها بالنسخة
   // الحقيقية من السيرفر تلقائياً، شوف "joined" تحت)
   useEffect(() => {
-    if (screen !== "chat" && screen !== "registering") return;
+    // 🩹 [إصلاح] ضفنا "verifying" هون كمان - لازم هالفولباك يشتغل وهو
+    // بهاي الشاشة كمان (مش بس "chat"/"registering")، وإلا لو صار انقطاع
+    // نت حقيقي وقت التحقق من الحساب، العميل يضل عالق بشاشة "عم نتأكد من
+    // حسابك..." للأبد بدل ما يشوف نسخته المحفوظة محلياً
+    if (screen !== "chat" && screen !== "registering" && screen !== "verifying") return;
     if (connectionState === "connected") return; // متصل فعلياً - ولا داعي لأي نسخة محلية
     const savedChatId = localStorage.getItem(storageKey);
     if (!savedChatId) return; // زائر جديد كلياً - ما في نسخة محفوظة أصلاً لنعرضها
@@ -3155,7 +3173,10 @@ export default function WebChat() {
   }, [screen, connectionState, storageKey]);
 
   useEffect(() => {
-    if (screen !== "chat" && screen !== "registering") return; // لسا بشاشة الترحيب - ما في داعي نفتح اتصال
+    // 🩹 [إصلاح] "verifying" مضافة هون كمان عشان نتصل ونتحقق من السيرفر
+    // فوراً لعميل عنده chatId محفوظ من زيارة سابقة (بدل ما نفتح واجهة
+    // المحادثة الكاملة قبل التأكد إنه حسابه لسا موجود - شوف تعريف "screen" فوق)
+    if (screen !== "chat" && screen !== "registering" && screen !== "verifying") return; // لسا بشاشة الترحيب - ما في داعي نفتح اتصال
 
     const savedChatId = localStorage.getItem(storageKey);
     const socket = io(API_ORIGIN, { path: "/socket.io", transports: ["websocket", "polling"] });
@@ -3198,6 +3219,12 @@ export default function WebChat() {
       localStorage.setItem(storageKey, data.chatId);
       setEstablishment(data);
       setConnectionState("connected");
+      // 🩹 [إصلاح] لو كنا بشاشة "verifying" (عميل راجع بـchatId محفوظ)
+      // وتأكدنا هلق إنه حسابه لسا موجود فعلاً (customerExists !== false
+      // فوق) - هلق بس منفتح واجهة المحادثة الحقيقية. ما منلمس الشاشة لو
+      // كانت "registering" أصلاً (هاي بتضل زي ما هي لحد ما يخلص هاندشيك
+      // التسجيل الكامل ويوصل لشاشة "intro")
+      if (screen === "verifying") setScreen("chat");
       setIsOfflineFallback(false);
       if (data.chatLocked && chatIdRef.current) saveOutboxList(chatIdRef.current, []);
       setChatLocked(Boolean(data.chatLocked));
@@ -3898,6 +3925,23 @@ export default function WebChat() {
       <ThemeContext.Provider value={THEME}>
         <RegisteringScreen
           name={welcomeName}
+          logoUrl={establishment?.establishmentLogo || earlyInfo?.logoUrl}
+          establishmentName={establishment?.establishmentName || earlyInfo?.name}
+        />
+      </ThemeContext.Provider>
+    );
+  }
+
+  // 🩹 [إصلاح] شاشة تحميل بسيطة لعميل راجع (chatId محفوظ من زيارة
+  // سابقة) لحد ما يتأكد السيرفر إنه حسابه لسا موجود - شوف شرح "verifying"
+  // بتعريف "screen" فوق. بدون هاي الشاشة كنا نفتح واجهة المحادثة الكاملة
+  // فوراً وبعدين نرجعها فجأة لشاشة التسجيل لو الحساب طلع محذوف - فلاش
+  // مربك لثوانٍ.
+  if (screen === "verifying") {
+    return (
+      <ThemeContext.Provider value={THEME}>
+        <RegisteringScreen
+          verifying
           logoUrl={establishment?.establishmentLogo || earlyInfo?.logoUrl}
           establishmentName={establishment?.establishmentName || earlyInfo?.name}
         />
