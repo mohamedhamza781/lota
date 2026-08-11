@@ -3350,17 +3350,16 @@ export default function WebChat() {
       ) {
         const name = pendingRegistrationRef.current.name;
         registrationStepRef.current = "awaiting_phone_request";
-        // 🩹 [إصلاح] هلق منعرض فقاعة الاسم فعلياً بالمحادثة (بطلب صريح) -
-        // مرة وحدة بس (هاي الإرسال الحقيقي، مش رسالة "التفعيل" الأولى
-        // يلي انبعتت hideBubble:true قبل شوي بنفس النص بالظبط). ما في داعي
-        // لأي تأخير اصطناعي هون رغم إنها هلق ظاهرة - أصلاً صايرة وراء
-        // شاشة "جاري إنشاء حسابك..." فما رح يشوفها العميل تتكتب حرف حرف
-        // بأي حال، بتظهر جاهزة لما ينتقل لتبويب الشات.
-        // 🩹 [إصلاح إضافي] nameBubbleSentRef + clientMsgId ثابت: لو نفس
-        // رد البوت ("ابعت اسمك") وصل أكتر من مرة (مثلاً بعد إعادة اتصال)
-        // ما منكرر الفقاعة ولا الإرسال - مرة وحدة بس لكل محاولة تسجيل.
+        // 🔄 [تراجع بطلب صريح] رجعنا لإخفاء فقاعة الاسم كرسالة "مرسلة من
+        // الزبون" بالمحادثة - الاسم والرقم منجمعهم فقط لأجل الداشبورد/
+        // قاعدة البيانات (صاحب المنشأة)، ما إلهم داعي يظهروا للزبون نفسه
+        // كأنه هو كتبهم كرسالة، خصوصاً إنه أصلاً صايرين وراء شاشة "جاري
+        // إنشاء حسابك...". الإرسال الفعلي للباك إند (عشان يتسجل بالنظام)
+        // ضل زي ما هو - بس شلنا استدعاء pushMessage يلي كان يعرضها كفقاعة.
+        // 🩹 nameBubbleSentRef + clientMsgId ثابت: لو نفس رد البوت ("ابعت
+        // اسمك") وصل أكتر من مرة (مثلاً بعد إعادة اتصال) ما منكرر الإرسال
+        // - مرة وحدة بس لكل محاولة تسجيل.
         nameBubbleSentRef.current = true;
-        pushMessage({ from: "me", text: name, at: new Date().toISOString() });
         socketRef.current?.emit("client_message", {
           text: name,
           silent: true,
@@ -3378,10 +3377,11 @@ export default function WebChat() {
         if (looksLikePhoneRequest && !phoneBubbleSentRef.current) {
           const phone = pendingRegistrationRef.current.phone;
           registrationStepRef.current = "awaiting_membership_confirmation";
-          // 🩹 [إصلاح] نفس منطق الاسم فوق - منعرض فقاعة الرقم فعلياً، مرة
-          // وحدة بس (phoneBubbleSentRef + clientMsgId ثابت لنفس السبب)
+          // 🔄 [تراجع بطلب صريح] نفس منطق الاسم فوق - ما منعرض فقاعة الرقم
+          // كرسالة "مرسلة من الزبون" بالمحادثة، بس ضل الإرسال الفعلي
+          // للباك إند زي ما هو (phoneBubbleSentRef + clientMsgId ثابت
+          // يمنعوا تكرار الإرسال لنفس محاولة التسجيل)
           phoneBubbleSentRef.current = true;
-          pushMessage({ from: "me", text: phone, at: new Date().toISOString() });
           socketRef.current?.emit("client_message", {
             text: phone,
             silent: true,
