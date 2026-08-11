@@ -2680,6 +2680,15 @@ export default function WebChat() {
   // وقت آخر مسح QR فعلي (مش مسح وهمي/رابط قديم) - بنستخدمه لاحقاً لتحديد
   // إظهار أيقونة "امسح QR" بعد ١٢ ساعة (شوف QrRescanIcon/showQrRescanIcon تحت)
   const lastQrScanKey = `lotality_last_qr_scan:${slug}`;
+  // 🩹 [إصلاح] الاسم/الرقم يلي بيتبعتوا للباك إند وقت التسجيل التلقائي
+  // (هاندشيك الاسم/الرقم) بينخزنوا هناك كرسائل حقيقية بسجل المحادثة -
+  // فلما يوصل حدث "joined" (أول اتصال أو أي إعادة اتصال/ريفرش بعد هيك)
+  // وبيرجع data.history من السيرفر، هاي الرسائل بترجع تظهر كفقاعات حتى
+  // لو إحنا بطّلنا نعرضها محلياً وقت إرسالها (شوف أسفل). فبنحفظ الاسم
+  // والرقم المسجّلين هون محلياً، وبنستخدمهم تحت لفلترتهم من history قبل
+  // ما نعرضها - لأنه مفيش أي داعي يشوف الزبون اسمه/رقمه معروضين كأنه هو
+  // كتبهم كرسالة (هاي البيانات لأجل الداشبورد وقاعدة البيانات بس).
+  const regInfoKey = `lotality_reg_info:${slug}`;
   // نافذة زمنية معقولة (ساعة) نعتبر خلالها "آخر مسح QR" لسا حديث بما
   // فيه الكفاية - عشان لو مسح QR بالمتصفح، وقبل ما يخلّص التسجيل ثبّت
   // الاختصار وفتحه، الاختصار (سياق منفصل عن التاب الأصلي، بس بيتشارك
@@ -3233,8 +3242,31 @@ export default function WebChat() {
       // الـchatId) - هيك المحادثة بتضل موجودة حتى لو عمل ريفرش للصفحة،
       // بدل ما تنمسح وتبلش فاضية من جديد كل مرة
       if (Array.isArray(data.history)) {
+        // 🩹 [إصلاح] بنستبعد من history رسائل هاندشيك التسجيل (الاسم/الرقم
+        // يلي انبعتوا تلقائياً وقت التسجيل، وما بيمثلوا رسالة حقيقية كتبها
+        // الزبون) - السيرفر بيخزنهم كرسائل عادية بالمحادثة، فلو ما فلترناهم
+        // هون رح يرجعوا يظهروا كفقاعات "أنا" كل ما يوصل history جديد (أول
+        // اتصال، أو أي ريفرش/إعادة اتصال بعد هيك)، حتى إنه إحنا أصلاً
+        // بطّلنا نضيفهم محلياً وقت إرسالهم (شوف "bot_message" تحت)
+        let regInfo = null;
+        try {
+          regInfo = JSON.parse(localStorage.getItem(regInfoKey) || "null");
+        } catch {
+          regInfo = null;
+        }
+        const regName = regInfo?.name?.trim();
+        const regPhoneDigits = (regInfo?.phone || "").replace(/[^\d]/g, "");
+        const isHandshakeEcho = (m) => {
+          if (m.from !== "me" || typeof m.text !== "string") return false;
+          const text = m.text.trim();
+          if (regName && text === regName) return true;
+          if (regPhoneDigits && text.replace(/[^\d]/g, "") === regPhoneDigits) return true;
+          return false;
+        };
         // [Change 5] نضيف imageUrl عشان صور الوجبات تظهر من التاريخ بعد الريفرش
-        const historyMessages = data.history.map((m) => ({ id: m.id, from: m.from, text: m.text, imageUrl: m.imageUrl || null, at: m.at }));
+        const historyMessages = data.history
+          .filter((m) => !isHandshakeEcho(m))
+          .map((m) => ({ id: m.id, from: m.from, text: m.text, imageUrl: m.imageUrl || null, at: m.at }));
         // أي رسالة لسا بالـoutbox (اتبعتت بس ما توصل تأكيد إنها انحفظت -
         // مثلاً اتسكرت التاب والنت مقطوع) ما رح تكون جوا history (لأنها
         // أصلاً ما وصلت السيرفر بعد) - منضيفها يدوياً بحالة "pending" عشان
@@ -3461,6 +3493,13 @@ export default function WebChat() {
   function handleWelcomeSubmit({ name, phone }) {
     setRegistrationError("");
     pendingRegistrationRef.current = { name, phone };
+    // بنحفظ الاسم/الرقم محلياً عشان نقدر نفلترهم لاحقاً من history
+    // الراجعة من السيرفر (شوف تعريف regInfoKey فوق للتفاصيل)
+    try {
+      localStorage.setItem(regInfoKey, JSON.stringify({ name, phone }));
+    } catch {
+      // تجاهل
+    }
     // 🩹 [إصلاح] تصفير حراس الفقاعة المكررة مع كل محاولة تسجيل جديدة
     // (مثلاً لو التسجيل الأول فشل ورجع العميل عبى شاشة الترحيب وأعاد
     // الإرسال - هاي محاولة جديدة، مفروض تسمح بفقاعة اسم/رقم جديدة)
