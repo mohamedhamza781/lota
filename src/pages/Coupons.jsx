@@ -130,11 +130,11 @@ export default function Coupons() {
   }, [coupons, query]);
 
   function handleExportExcel() {
-    const rows = filtered.map((c) => {
+    const rows = [];
+
+    filtered.forEach((c) => {
       const status = couponStatus(c);
-      return {
-        "اسم العميل": c.customerId?.name || "عام (كل العملاء)",
-        "رقم الهاتف": c.customerId?.phone || "",
+      const baseRow = {
         "كود الكوبون": c.code || "",
         "نوع الخصم": c.discountType === "percentage" ? "نسبة مئوية" : "مبلغ ثابت",
         "نسبة الخصم / الهدية": discountLabel(c),
@@ -145,12 +145,50 @@ export default function Coupons() {
         "عدد مرات الاستخدام": c.usedCount ?? 0,
         "الحد الأقصى للاستخدام": c.maxUses != null ? c.maxUses : "بلا حد",
       };
+
+      if (c.customerId) {
+        // كوبون شخصي - عميل واحد محدد
+        rows.push({
+          "اسم العميل": c.customerId.name || "",
+          "رقم الهاتف": c.customerId.phone || "",
+          "نوع الكوبون": "شخصي",
+          ...baseRow,
+        });
+        return;
+      }
+
+      // كوبون عام - بيطبّق على كل عملاء المنشأة (أو بس يلي رصيدهم وصل
+      // للحد الأدنى المطلوب لو minPointsRequired محدّد) - منفرد صف لكل
+      // عميل مستحق عشان الكاشير يقدر يدور باسم العميل مباشرة ويعرف إذا
+      // إله الخصم هاد ولا لأ
+      const minPoints = c.minPointsRequired || 0;
+      const eligibleCustomers = minPoints > 0 ? customers.filter((cust) => (cust.points ?? 0) >= minPoints) : customers;
+
+      if (eligibleCustomers.length === 0) {
+        rows.push({
+          "اسم العميل": "عام (كل العملاء)",
+          "رقم الهاتف": "",
+          "نوع الكوبون": minPoints > 0 ? `عام (لازم ${minPoints}+ نقطة)` : "عام",
+          ...baseRow,
+        });
+        return;
+      }
+
+      eligibleCustomers.forEach((cust) => {
+        rows.push({
+          "اسم العميل": cust.name || "",
+          "رقم الهاتف": cust.phone || "",
+          "نوع الكوبون": minPoints > 0 ? `عام (لازم ${minPoints}+ نقطة)` : "عام",
+          ...baseRow,
+        });
+      });
     });
 
     const worksheet = XLSX.utils.json_to_sheet(rows);
     worksheet["!cols"] = [
       { wch: 22 }, // اسم العميل
       { wch: 14 }, // رقم الهاتف
+      { wch: 20 }, // نوع الكوبون
       { wch: 16 }, // كود الكوبون
       { wch: 14 }, // نوع الخصم
       { wch: 18 }, // نسبة الخصم / الهدية
