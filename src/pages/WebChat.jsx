@@ -2095,9 +2095,11 @@ function RegisteringScreen({ name, logoUrl, establishmentName, verifying = false
           </div>
         )}
 
-        <div style={{ fontSize: 11, color: THEME.textSecondary || "#94A3B8", marginTop: 16, textAlign: "center" }}>
-          لا تغلق هاي الصفحة، ثواني وبنخلص
-        </div>
+        {!verifying && (
+          <div style={{ fontSize: 11, color: THEME.textSecondary || "#94A3B8", marginTop: 16, textAlign: "center" }}>
+            لا تغلق هاي الصفحة، ثواني وبنخلص
+          </div>
+        )}
       </div>
 
       <style>{`
@@ -4368,24 +4370,34 @@ export default function WebChat() {
             <div style={{ textAlign: "center", fontSize: 12.5, color: THEME.textSecondary, background: THEME.bgChat, borderRadius: 14, padding: "10px 14px", lineHeight: 1.8, width: "100%" }}>
               نتمنى أن نراك قريبًا في {establishment?.establishmentName || earlyInfo?.name || "المحل"}، ولا تنسَ مسح رمز QR في زيارتك القادمة
             </div>
-            <button
-              onClick={() => setShowQrScanner(true)}
-              style={{
-                border: `2px solid ${THEME.headerBg || "#075E54"}`,
-                borderRadius: 14,
-                padding: "10px 22px",
-                fontSize: 13.5,
-                fontWeight: 700,
-                color: THEME.headerBg || "#075E54",
-                background: "transparent",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: 7,
-              }}
-            >
-              <QrCodeScannerIcon style={{ fontSize: 18 }} /> امسح QR الآن
-            </button>
+            {/* 🩹 [إصلاح] زر "امسح QR الآن" هلق بيظهر بس بعد ما تعدي نفس
+                نافذة الـ١٢ ساعة يلي الباك إند فعلياً بيتحقق منها (شوف
+                VISIT_WINDOW_MS بـwhatsapp.service.js) - نفس شرط showQrRescanIcon
+                يلي بيتحكم بأيقونة الهيدر. قبل هالإصلاح كان الزر يظهر فوراً
+                لحظة ما تخلص الزيارة (chatLocked=true) بغض النظر عن الوقت -
+                فالعميل كان يقدر يمسح QR فوراً بس أي زيارة جديدة كانت أصلاً
+                رح ترفض من الباك إند (لأنه لسا ضمن نفس نافذة الـ١٢ ساعة)
+                بدون أي تفسير واضح إله ليش. */}
+            {showQrRescanIcon && (
+              <button
+                onClick={() => setShowQrScanner(true)}
+                style={{
+                  border: `2px solid ${THEME.headerBg || "#075E54"}`,
+                  borderRadius: 14,
+                  padding: "10px 22px",
+                  fontSize: 13.5,
+                  fontWeight: 700,
+                  color: THEME.headerBg || "#075E54",
+                  background: "transparent",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 7,
+                }}
+              >
+                <QrCodeScannerIcon style={{ fontSize: 18 }} /> امسح QR الآن
+              </button>
+            )}
           </div>
         ) : (
         <div style={{ display: "flex", alignItems: "flex-end", gap: 8, maxWidth: 800, margin: "0 auto" }}>
