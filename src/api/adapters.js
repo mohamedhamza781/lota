@@ -133,6 +133,7 @@ export function normalizeCategoriesWithProducts(categories, products) {
         imageUrl: p.imageUrl,
         isNew: !!p.isNewItem,
         order: p.order,
+        description: p.description || "",
       })),
   }));
 }

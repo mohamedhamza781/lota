@@ -37,7 +37,7 @@ import { tokens } from "../theme/theme";
 import { useAuth } from "../auth/AuthContext";
 import { fetchWebChatQrCode } from "../api/webChat";
 
-const EMPTY_ITEM_FORM = { name: "", price: "", isNew: false, categoryId: "" };
+const EMPTY_ITEM_FORM = { name: "", price: "", isNew: false, categoryId: "", description: "" };
 
 export default function Menu() {
   const { establishmentId } = useParams();
@@ -123,6 +123,7 @@ export default function Menu() {
       price: String(item.price),
       isNew: Boolean(item.isNew),
       categoryId,
+      description: item.description || "",
     });
     setFormError("");
     setItemDialogOpen(true);
@@ -138,7 +139,13 @@ export default function Menu() {
       setFormError("السعر لازم يكون رقم صحيح");
       return;
     }
-    const payload = { name: itemForm.name.trim(), price, isNew: itemForm.isNew };
+    const payload = {
+      name: itemForm.name.trim(),
+      price,
+      isNew: itemForm.isNew,
+      // اختياري تماماً - بيترسل فاضي لو ما كتب صاحب المنشأة شي
+      description: itemForm.description.trim(),
+    };
     if (editingItem) {
       updateMenuItem(establishmentId, editingItem.categoryId, editingItem.itemId, payload);
     } else {
@@ -477,6 +484,14 @@ export default function Menu() {
                     >
                       <TableCell sx={{ fontFamily: '"IBM Plex Sans Arabic"', fontWeight: 600, fontSize: "0.92rem" }}>
                         {it.name}
+                        {it.description && (
+                          <Typography
+                            component="div"
+                            sx={{ fontWeight: 400, fontSize: "0.78rem", color: tokens.muted, mt: 0.25 }}
+                          >
+                            {it.description}
+                          </Typography>
+                        )}
                       </TableCell>
                       <TableCell sx={{ fontFamily: '"IBM Plex Sans Arabic"', fontWeight: 700, fontSize: "0.92rem" }}>
                         {Number(it.price).toFixed(2)} ₪
@@ -661,6 +676,17 @@ export default function Menu() {
               value={itemForm.price}
               onChange={(e) => setItemForm((f) => ({ ...f, price: e.target.value }))}
               inputProps={{ step: "0.01", min: 0 }}
+              sx={{ "& .MuiOutlinedInput-root": { borderRadius: "12px" } }}
+            />
+            <TextField
+              label="وصف الصنف (اختياري)"
+              placeholder="مثلاً: مكوّنات الطبق أو طريقة التقديم"
+              size="small"
+              fullWidth
+              multiline
+              minRows={2}
+              value={itemForm.description}
+              onChange={(e) => setItemForm((f) => ({ ...f, description: e.target.value }))}
               sx={{ "& .MuiOutlinedInput-root": { borderRadius: "12px" } }}
             />
             {!editingItem && (
