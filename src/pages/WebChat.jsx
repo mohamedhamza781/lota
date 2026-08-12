@@ -2036,7 +2036,11 @@ function RegisteringScreen({ name, logoUrl, establishmentName, verifying = false
           animation: "fadeScaleIn 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
         }}
       >
-        <div style={{ position: "relative", width: 84, height: 84, marginBottom: 22 }}>
+        {/* 🩹 [إصلاح] الـmarginBottom (22) كانت مخصصة للمسافة بين اللوجو
+            ونص الخطوات تحته - بس بحالة verifying (عميل راجع) هداك النص
+            كله مخفي (شوف !verifying تحت)، فكانت هاي المسافة تضل فاضية
+            وتخلي اللوجو يبين مرفوع عن نص الكرت بدل ما يكون بالنص تماماً */}
+        <div style={{ position: "relative", width: 84, height: 84, marginBottom: verifying ? 0 : 22 }}>
           <div
             style={{
               width: "100%",
@@ -2258,42 +2262,11 @@ function OfflineBanner({ connectionState, hasChatFooter }) {
   );
 }
 
-// أيقونة بسيطة بالهيدر (مش بانر نص - النص كان اتشال قصداً بطلب سابق، شوف
-// الكومنت جوا شاشة الشات) بتظهر بس لو عدّى ١٢ ساعة (نفس VISIT_WINDOW_HOURS
-// المستخدمة بالباك إند) من آخر مسح QR فعلي، وبتفتح ماسح QR داخل نفس
-// الصفحة (InChatQrScanner تحت) بدل ما يطلع العميل من التطبيق أصلاً
+// وقت نافذة التذكير (١٢ ساعة، نفس VISIT_WINDOW_HOURS المستخدمة بالباك
+// إند) - بنستخدمها بس هلق لزر "امسح QR الآن" بشاشة انتهاء المحادثة
+// (شوف showQrRescanIcon تحت). 🩹 [إصلاح] أيقونة الهيدر (QrRescanIcon)
+// اتشالت كلياً بطلب صريح - كانت مكررة مع نفس الزر بالضبط
 const QR_REMINDER_WINDOW_MS = 12 * 60 * 60 * 1000;
-
-function QrRescanIcon({ visible, onClick }) {
-  if (!visible) return null;
-  return (
-    <button
-      onClick={onClick}
-      aria-label="امسح QR لتسجيل زيارة جديدة"
-      title="امسح QR لتسجيل زيارة جديدة"
-      style={{
-        width: 38,
-        height: 38,
-        borderRadius: "50%",
-        border: "none",
-        background: "rgba(255,255,255,0.16)",
-        color: "#fff",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        cursor: "pointer",
-        flexShrink: 0,
-      }}
-    >
-      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect x="3" y="3" width="7" height="7" rx="1.2" stroke="currentColor" strokeWidth="2" />
-        <rect x="14" y="3" width="7" height="7" rx="1.2" stroke="currentColor" strokeWidth="2" />
-        <rect x="3" y="14" width="7" height="7" rx="1.2" stroke="currentColor" strokeWidth="2" />
-        <path d="M14 14h3v3h-3zM19 14h2v2h-2zM14 19h2v2h-2zM19 19h2v2h-2z" fill="currentColor" />
-      </svg>
-    </button>
-  );
-}
 
 // ماسح QR جوا نفس صفحة الشات (بدل ما نطلع عالكاميرا الافتراضية تبع
 // الجوال، يلي كان بيرجع يفتح رابط جديد بريفرش كامل للصفحة - وهاد بالظبط
@@ -2684,7 +2657,7 @@ export default function WebChat() {
   // رابط متشارك من احتساب زيارة) ضلّت شغالة زي ما هي.
   const viaQrSessionKey = `webchat_via_qr_${slug}`;
   // وقت آخر مسح QR فعلي (مش مسح وهمي/رابط قديم) - بنستخدمه لاحقاً لتحديد
-  // إظهار أيقونة "امسح QR" بعد ١٢ ساعة (شوف QrRescanIcon/showQrRescanIcon تحت)
+  // إظهار زر "امسح QR الآن" بعد ١٢ ساعة (شوف showQrRescanIcon تحت)
   const lastQrScanKey = `lotality_last_qr_scan:${slug}`;
   // 🩹 [إصلاح] الاسم/الرقم يلي بيتبعتوا للباك إند وقت التسجيل التلقائي
   // (هاندشيك الاسم/الرقم) بينخزنوا هناك كرسائل حقيقية بسجل المحادثة -
@@ -2844,7 +2817,7 @@ export default function WebChat() {
   // منفصلتين - فتطلع فقاعة الاسم (أو الرقم) مكررة بالمحادثة.
   const handshakeMsgIdsRef = useRef({ activation: null, name: null, phone: null });
 
-  // ماسح QR داخل الشات (شوف QrRescanIcon/InChatQrScanner فوق) - showQrScanner
+  // ماسح QR داخل الشات (شوف InChatQrScanner فوق) - showQrScanner
   // بيتحكم بظهور الكاميرا، وqrIconTick بس عداد بسيط بنزيده كل دقيقة (ومباشرة
   // بعد مسح ناجح) عشان useMemo تبع showQrRescanIcon تحته يعيد يتحقق من
   // الوقت المنقضي بدون ما نحتاج ريفرش كامل للصفحة
@@ -4054,11 +4027,11 @@ export default function WebChat() {
           نفسها ضلت زي ما هي وبتشتغل عادي (شوف setIsOfflineFallback فوق):
           لسا بيتم تحميل آخر نسخة محفوظة من المحادثة محلياً لما يفشل الاتصال،
           بس من غير ما نعرض أي بانر/نص للعميل عن هالشي. */}
-      {/* تذكير مسح QR بعد ١٢ ساعة كان نص/بانر بالسابق واتشال بناءً على طلب
-          صريح (كان مزعج). هلق بدله أيقونة صغيرة بالهيدر (QrRescanIcon) بس -
-          بتفتح كاميرا داخل نفس الصفحة (InChatQrScanner) فيها العميل يمسح
-          QR الحقيقي بالمحل ويسجّل زيارة جديدة بدون ما يطلع من التطبيق ولا
-          يعمل reload كامل للصفحة. منطق قبول الزيارة نفسه (isValidQrVisit +
+      {/* تذكير مسح QR بعد ١٢ ساعة كان نص/بانر، وبعدين صار أيقونة صغيرة
+          بالهيدر - اتشالت هي كمان بناءً على طلب صريح (كانت مكررة مع زر
+          "امسح QR الآن" بشاشة انتهاء المحادثة تحت). هلق المدخل الوحيد
+          لمسح QR من جوا الشات هو هداك الزر بس (شوف showQrRescanIcon +
+          InChatQrScanner تحت). منطق قبول الزيارة نفسه (isValidQrVisit +
           VISIT_WINDOW_HOURS بالباك إند) ضل زي ما هو بدون أي تغيير */}
 
       {/* ----------------- الهيدر العلوي - بس بتبويب الشات ----------------- */}
@@ -4118,7 +4091,6 @@ export default function WebChat() {
           </div>
         </div>
 
-        <QrRescanIcon visible={showQrRescanIcon} onClick={() => setShowQrScanner(true)} />
       </header>
       )}
 
