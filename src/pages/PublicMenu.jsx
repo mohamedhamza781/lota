@@ -7,7 +7,6 @@ import SearchOffRoundedIcon from "@mui/icons-material/SearchOffRounded";
 import { rtlCache } from "../theme/rtlCache";
 import { buildPublicMenuTheme } from "../publicMenu/theme";
 import MenuHero from "../publicMenu/components/MenuHero";
-import Marquee from "../publicMenu/components/Marquee";
 import MenuSection from "../publicMenu/components/MenuSection";
 import Footer from "../publicMenu/components/Footer";
 import { publicMenuApi } from "../api/publicMenu";
@@ -312,14 +311,12 @@ export default function PublicMenu({ slugProp, hideDialog = false } = {}) {
           </Dialog>
           )}
 
-          <MenuHero />
-          <Marquee items={categories.map((c) => c.name)} />
-          <Box id="menu" sx={{ maxWidth: 1200, mx: "auto", px: { xs: 2, md: 6 }, py: 8 }}>
+          <MenuHero title={establishment.name} />
+          <Box id="menu" sx={{ maxWidth: 1200, mx: "auto", px: { xs: 2, md: 6 }, pt: 2, pb: 8 }}>
             {categories.map((cat) => (
               <MenuSection key={cat.id} id={cat.id} title={cat.name} items={cat.items} count={cat.items.length} />
             ))}
           </Box>
-          <Marquee items={categories.map((c) => c.name)} />
           <Footer
             brandName={establishment.name}
             categories={categories.map((c) => ({ id: c.id, label: c.name }))}

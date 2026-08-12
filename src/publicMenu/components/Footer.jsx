@@ -5,6 +5,7 @@ import TikTokIcon from "./TikTokIcon";
 import PhoneRoundedIcon from "@mui/icons-material/PhoneRounded";
 import EmailRoundedIcon from "@mui/icons-material/EmailRounded"; // تم إضافة أيقونة الإيميل
 import { scrollToSection } from "../scrollTo";
+import MapCard from "./MapCard";
 
 const SECTION_IDS = { المنيو: "menu", الفروع: "locations", "من نحن": "about" };
 
@@ -76,14 +77,19 @@ export default function Footer({
     <Box sx={{ bgcolor: "primary.main", color: "#fff", pt: 8, pb: 2 }}>
       <Box sx={{ maxWidth: 1200, mx: "auto", px: { xs: 2, md: 6 } }}>
         <Grid container spacing={4}>
-          <Grid item xs={12} md={3}>
-            <Typography variant="h5" sx={{ fontFamily: '"IBM Plex Sans Arabic"' }}>{brandName}</Typography>
-            <Stack spacing={1} mt={2}>
-              <InfoRow icon={PhoneRoundedIcon} text={displayPhone} />
-              <InfoRow icon={EmailRoundedIcon} text={displayEmail} />
+          <Grid item xs={12} md={4}>
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems={{ xs: "stretch", sm: "center" }}>
+              <Box sx={{ width: { xs: "100%", sm: 130 }, flexShrink: 0 }}>
+                <MapCard height={110} />
+              </Box>
+              <Stack spacing={1}>
+                <Typography variant="h5" sx={{ fontFamily: '"IBM Plex Sans Arabic"' }}>{brandName}</Typography>
+                <InfoRow icon={PhoneRoundedIcon} text={displayPhone} />
+                <InfoRow icon={EmailRoundedIcon} text={displayEmail} />
+              </Stack>
             </Stack>
           </Grid>
-          <Grid item xs={6} md={3}><FooterCol title="الرئيسية" links={["المنيو"]} /></Grid>
+          <Grid item xs={6} md={2}><FooterCol title="الرئيسية" links={["المنيو"]} /></Grid>
           <Grid item xs={6} md={3}><FooterCol title="الأقسام" links={categories} /></Grid>
           <Grid item xs={12} md={3}>
             <Typography sx={{ opacity: 0.7, mb: 1 }}>تابعنا</Typography>
@@ -98,8 +104,8 @@ export default function Footer({
                   disabled={!url}
                   sx={{
                     bgcolor: "#fff",
-                    color: "#000",
-                    "&:hover": { bgcolor: "#f0f0f0", color: "#000" },
+                    color: "primary.main",
+                    "&:hover": { bgcolor: "#f0f0f0", color: "primary.main" },
                     "&.Mui-disabled": { bgcolor: "rgba(255,255,255,0.35)", color: "rgba(0,0,0,0.4)" },
                   }}
                 >
@@ -110,20 +116,8 @@ export default function Footer({
           </Grid>
         </Grid>
         <Typography sx={{ fontFamily: '"IBM Plex Sans Arabic"', fontWeight: 800, textAlign: "center", fontSize: { xs: 60, md: 160 }, lineHeight: 1, mt: 6 }}>{brandName}</Typography>
-        <Stack direction="row" justifyContent="space-between" mt={2} sx={{ opacity: 0.7, fontSize: 12 }}>
+        <Stack direction="row" justifyContent="center" mt={2} sx={{ opacity: 0.7, fontSize: 12 }}>
           <span>{brandName} © ٢٠٢٦</span>
-          <Link
-            href="#"
-            underline="hover"
-            color="inherit"
-            onClick={(e) => {
-              e.preventDefault();
-              window.scrollTo({ top: 0, behavior: "smooth" });
-            }}
-            sx={{ cursor: "pointer" }}
-          >
-            ↑ ارجع لفوق
-          </Link>
         </Stack>
       </Box>
     </Box>
