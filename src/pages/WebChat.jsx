@@ -2072,24 +2072,28 @@ function RegisteringScreen({ name, logoUrl, establishmentName, verifying = false
           />
         </div>
 
-        {/* <div style={{ fontSize: 16.5, fontWeight: 800, color: THEME.textPrimary || "#0F172A", textAlign: "center", letterSpacing: "-0.01em" }}>
-          {verifying ? "جاري التحقق من حسابك" : firstName ? `جاري إنشاء حسابك يا ${firstName}` : "جاري إنشاء حسابك"}
-        </div> */}
+        {!verifying && (
+          <div style={{ fontSize: 16.5, fontWeight: 800, color: THEME.textPrimary || "#0F172A", textAlign: "center", letterSpacing: "-0.01em" }}>
+            {firstName ? `جاري إنشاء حسابك يا ${firstName}` : "جاري إنشاء حسابك"}
+          </div>
+        )}
 
-        <div
-          key={stepIndex}
-          style={{
-            fontSize: 12.5,
-            color: darkGreen,
-            marginTop: 10,
-            fontWeight: 700,
-            textAlign: "center",
-            animation: "fadeIn 0.35s ease",
-            minHeight: 18,
-          }}
-        >
-          {steps[stepIndex]}
-        </div>
+        {!verifying && (
+          <div
+            key={stepIndex}
+            style={{
+              fontSize: 12.5,
+              color: darkGreen,
+              marginTop: 10,
+              fontWeight: 700,
+              textAlign: "center",
+              animation: "fadeIn 0.35s ease",
+              minHeight: 18,
+            }}
+          >
+            {steps[stepIndex]}
+          </div>
+        )}
 
         <div style={{ fontSize: 11, color: THEME.textSecondary || "#94A3B8", marginTop: 16, textAlign: "center" }}>
           لا تغلق هاي الصفحة، ثواني وبنخلص
