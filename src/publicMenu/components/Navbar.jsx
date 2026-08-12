@@ -35,7 +35,7 @@ export default function Navbar({ logoUrl }) {
         ) : (
           <LogoPlaceholder />
         )}
-        <Button sx={navBtn} onClick={() => scrollToSection("locations")}>الفروع</Button>
+        {/* <Button sx={navBtn} onClick={() => scrollToSection("locations")}>الفروع</Button> */}
         
       </Toolbar>
     </AppBar>

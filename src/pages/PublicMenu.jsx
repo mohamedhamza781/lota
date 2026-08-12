@@ -6,7 +6,6 @@ import { CacheProvider } from "@emotion/react";
 import SearchOffRoundedIcon from "@mui/icons-material/SearchOffRounded";
 import { rtlCache } from "../theme/rtlCache";
 import { buildPublicMenuTheme } from "../publicMenu/theme";
-import Navbar from "../publicMenu/components/Navbar";
 import MenuHero from "../publicMenu/components/MenuHero";
 import Marquee from "../publicMenu/components/Marquee";
 import MenuSection from "../publicMenu/components/MenuSection";
@@ -312,7 +311,6 @@ export default function PublicMenu({ slugProp, hideDialog = false } = {}) {
           </Dialog>
           )}
 
-          <Navbar logoUrl={establishment.logoUrl} />
           <MenuHero />
           <Marquee items={categories.map((c) => c.name)} />
           <Box id="menu" sx={{ maxWidth: 1200, mx: "auto", px: { xs: 2, md: 6 }, py: 8 }}>
