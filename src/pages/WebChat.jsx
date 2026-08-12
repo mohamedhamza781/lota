@@ -2072,9 +2072,9 @@ function RegisteringScreen({ name, logoUrl, establishmentName, verifying = false
           />
         </div>
 
-        <div style={{ fontSize: 16.5, fontWeight: 800, color: THEME.textPrimary || "#0F172A", textAlign: "center", letterSpacing: "-0.01em" }}>
+        {/* <div style={{ fontSize: 16.5, fontWeight: 800, color: THEME.textPrimary || "#0F172A", textAlign: "center", letterSpacing: "-0.01em" }}>
           {verifying ? "جاري التحقق من حسابك" : firstName ? `جاري إنشاء حسابك يا ${firstName}` : "جاري إنشاء حسابك"}
-        </div>
+        </div> */}
 
         <div
           key={stepIndex}
