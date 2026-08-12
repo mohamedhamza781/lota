@@ -2,12 +2,9 @@ import { Box, Grid, Typography, Stack, IconButton, Link } from "@mui/material";
 import InstagramIcon from "@mui/icons-material/Instagram";
 import FacebookIcon from "@mui/icons-material/Facebook";
 import TikTokIcon from "./TikTokIcon";
-import PlaceRoundedIcon from "@mui/icons-material/PlaceRounded";
-import AccessTimeRoundedIcon from "@mui/icons-material/AccessTimeRounded";
 import PhoneRoundedIcon from "@mui/icons-material/PhoneRounded";
 import EmailRoundedIcon from "@mui/icons-material/EmailRounded"; // تم إضافة أيقونة الإيميل
 import { scrollToSection } from "../scrollTo";
-import MapCard from "./MapCard";
 
 const SECTION_IDS = { المنيو: "menu", الفروع: "locations", "من نحن": "about" };
 
@@ -62,13 +59,10 @@ export default function Footer({
     { id: "menu", label: "مخبوزات" },
   ],
   city,
-  address,
-  hours,
   phone,
   email,
   socialLinks,
 }) {
-  const displayHours = hours || "يوميًا، من ٩:٠٠ صباحًا حتى ١١:٠٠ مساءً";
   const displayPhone = phone || "+970 59 000 0000";
   const displayEmail = email || `hello@${brandName.toLowerCase().replace(/\s+/g, "")}.com`;
   const social = socialLinks || {};
@@ -81,25 +75,6 @@ export default function Footer({
   return (
     <Box sx={{ bgcolor: "primary.main", color: "#fff", pt: 8, pb: 2 }}>
       <Box sx={{ maxWidth: 1200, mx: "auto", px: { xs: 2, md: 6 } }}>
-        {/* قسم الموقع — مدموج هون بالفوتر بدل ما يكون قسم مستقل بالصفحة */}
-        <Box id="locations" sx={{ mb: 7 }}>
-          <Typography variant="h4" sx={{ fontFamily: '"IBM Plex Sans Arabic"', mb: 3 }}>
-            وين تلاقي {brandName}
-          </Typography>
-          <Grid container spacing={4} alignItems="center">
-            <Grid item xs={12} md={7}>
-              <MapCard />
-            </Grid>
-            <Grid item xs={12} md={5}>
-              <Stack spacing={2}>
-                <InfoRow icon={PlaceRoundedIcon} text={address || (city ? `الشارع الرئيسي، ${city}` : "الشارع الرئيسي")} />
-                <InfoRow icon={AccessTimeRoundedIcon} text={displayHours} />
-                <InfoRow icon={PhoneRoundedIcon} text={displayPhone} />
-              </Stack>
-            </Grid>
-          </Grid>
-        </Box>
-
         <Grid container spacing={4}>
           <Grid item xs={12} md={3}>
             <Typography variant="h5" sx={{ fontFamily: '"IBM Plex Sans Arabic"' }}>{brandName}</Typography>
@@ -108,7 +83,7 @@ export default function Footer({
               <InfoRow icon={EmailRoundedIcon} text={displayEmail} />
             </Stack>
           </Grid>
-          <Grid item xs={6} md={3}><FooterCol title="الرئيسية" links={["المنيو", "الفروع"]} /></Grid>
+          <Grid item xs={6} md={3}><FooterCol title="الرئيسية" links={["المنيو"]} /></Grid>
           <Grid item xs={6} md={3}><FooterCol title="الأقسام" links={categories} /></Grid>
           <Grid item xs={12} md={3}>
             <Typography sx={{ opacity: 0.7, mb: 1 }}>تابعنا</Typography>

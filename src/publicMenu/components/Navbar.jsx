@@ -25,9 +25,6 @@ function LogoPlaceholder() {
 export default function Navbar({ logoUrl }) {
   return (
     <AppBar position="static" elevation={0} sx={{ bgcolor: "primary.main" }}>
-      {/* <Box sx={{ textAlign: "center", fontSize: 12, color: "secondary.main", py: 0.5 }}>
-        اشتري قهوة وخذ الثانية مجانًا — هالأسبوع بس (١٨–٢٠ نيسان)
-      </Box> */}
       <Toolbar sx={{ justifyContent: "center", gap: 4 }}>
         <Button sx={navBtn} onClick={() => scrollToSection("menu")}>المنيو</Button>
         {logoUrl ? (
