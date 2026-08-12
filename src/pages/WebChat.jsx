@@ -2101,8 +2101,7 @@ function RegisteringScreen({ name, logoUrl, establishmentName, verifying = false
 
         {!verifying && (
           <div style={{ fontSize: 11, color: THEME.textSecondary || "#94A3B8", marginTop: 16, textAlign: "center" }}>
-            لا تغلق هاي الصفحة، ثواني وبنخلص
-          </div>
+ثواني           </div>
         )}
       </div>
 
