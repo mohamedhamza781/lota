@@ -1414,7 +1414,7 @@ function NeedQrScreen({ slug }) {
         alignItems: "center",
         justifyContent: "center",
         background: `radial-gradient(120% 80% at 50% 0%, ${THEME.accent ? THEME.accent + "0D" : "#64748B0D"} 0%, ${THEME.bgChat || "#F1F5F9"} 100%)`,
-        fontFamily: "'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'IBM Plex Sans Arabic', sans-serif",
+        fontFamily: "'IBM Plex Sans Arabic', sans-serif",
         padding: 24,
         boxSizing: "border-box",
       }}
@@ -1602,7 +1602,7 @@ function WelcomeScreen({ slug, onSubmit, installBannerProps, logoUrl: earlyLogoU
           ? THEME.headerBgGrad || `linear-gradient(135deg, ${darkGreen} 0%, ${darkGreen} 100%)`
           : `radial-gradient(120% 80% at 50% 0%, ${THEME.accent ? THEME.accent + "0D" : "#64748B0D"} 0%, ${THEME.bgChat || "#F1F5F9"} 100%)`,
         transition: "background 0.4s ease",
-        fontFamily: "'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'IBM Plex Sans Arabic', sans-serif",
+        fontFamily: "'IBM Plex Sans Arabic', sans-serif",
         overflow: "hidden",
         boxSizing: "border-box",
         padding: "12px 18px 16px",
@@ -2013,7 +2013,7 @@ function RegisteringScreen({ name, logoUrl, establishmentName, verifying = false
         alignItems: "center",
         justifyContent: "center",
         background: `radial-gradient(120% 80% at 50% 0%, ${THEME.accent ? THEME.accent + "0D" : "#64748B0D"} 0%, ${THEME.bgChat || "#F1F5F9"} 100%)`,
-        fontFamily: "'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'IBM Plex Sans Arabic', sans-serif",
+        fontFamily: "'IBM Plex Sans Arabic', sans-serif",
         padding: 24,
         boxSizing: "border-box",
       }}
@@ -2471,7 +2471,7 @@ function IntroScreen({ name, establishmentName, logoUrl, onContinue, installBann
         display: "flex",
         flexDirection: "column",
         background: `radial-gradient(120% 80% at 50% 0%, ${THEME.accent ? THEME.accent + "0D" : "#64748B0D"} 0%, ${THEME.bgChat || "#F1F5F9"} 100%)`,
-        fontFamily: "'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'IBM Plex Sans Arabic', sans-serif",
+        fontFamily: "'IBM Plex Sans Arabic', sans-serif",
       }}
     >
       <InstallBanner {...installBannerProps} />
@@ -4014,7 +4014,7 @@ export default function WebChat() {
         display: "flex",
         flexDirection: "column",
         background: THEME.bgChat,
-        fontFamily: "'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'IBM Plex Sans Arabic', sans-serif",
+        fontFamily: "'IBM Plex Sans Arabic', sans-serif",
         position: "relative",
         overflow: "hidden",
       }}
