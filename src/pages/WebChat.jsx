@@ -3218,6 +3218,31 @@ export default function WebChat() {
       if (data.chatLocked && chatIdRef.current) saveOutboxList(chatIdRef.current, []);
       setChatLocked(Boolean(data.chatLocked));
 
+      // 🩹 [إصلاح] مزامنة lastQrScanKey (localStorage) مع lastVisitAt الجاي
+      // من السيرفر (CustomerProfile - نفس المرجع يلي whatsapp.service.js
+      // بيتحقق منه لنافذة الـ١٢ ساعة). قبل هالإصلاح كان showQrRescanIcon
+      // يعتمد حصراً على localStorage المحلي - لو ضاع (كاش انمسح، جهاز/متصفح
+      // تاني، اختصار PWA انثبّت من جديد...) زر "امسح QR الآن" كان يضل مخفي
+      // للأبد حتى لو فعلياً عدّت أكتر من ١٢ ساعة على آخر زيارة وصار
+      // chatLocked=true - لأنه lastScan كان صفر ("ما عنا مرجعية وقت حقيقية").
+      // هلق منستخدم قيمة السيرفر كمرجع أدق كل مرة توصل (وقت آخر زيارة
+      // فعلية)، ومنحدّث qrIconTick عشان showQrRescanIcon (useMemo) يعيد
+      // يتحقق فوراً بدل ما يستنى الـtick الدقيقة العادي.
+      if (typeof data.lastVisitAt === "number" && data.lastVisitAt > 0) {
+        try {
+          const currentLocal = Number(localStorage.getItem(lastQrScanKey)) || 0;
+          // منآخذ الأحدث بين القيمتين - لو المحلية أحدث (مثلاً مسح QR جوا
+          // الشات لتوّه بنفس التاب) منخليها، وإلا منستخدم مرجع السيرفر
+          if (data.lastVisitAt > currentLocal) {
+            localStorage.setItem(lastQrScanKey, String(data.lastVisitAt));
+          }
+        } catch {
+          // تجاهل - لو localStorage مش متاح، بيضل الاعتماد على السيرفر
+          // (chatLocked) بس بدون تحديد وقت دقيق للزر
+        }
+        setQrIconTick((t) => t + 1);
+      }
+
       // بيرجع المحادثة السابقة كاملة من الباك إند (لو عميل راجع بنفس
       // الـchatId) - هيك المحادثة بتضل موجودة حتى لو عمل ريفرش للصفحة،
       // بدل ما تنمسح وتبلش فاضية من جديد كل مرة
