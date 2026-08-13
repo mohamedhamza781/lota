@@ -561,6 +561,8 @@ export default function Conversations() {
               <TextField
                 size="small"
                 fullWidth
+                multiline
+                maxRows={6}
                 placeholder="اكتب رسالة للعميل…"
                 value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}
