@@ -223,6 +223,7 @@ export default function PublicMenu({ slugProp, hideDialog = false } = {}) {
       price: it.price,
       isNew: it.isNew,
       description: it.description,
+      imageUrl: it.imageUrl,
     })),
   }));
 
