@@ -38,6 +38,7 @@ import NotificationsActiveRoundedIcon from "@mui/icons-material/NotificationsAct
 import InfoRoundedIcon from "@mui/icons-material/InfoRounded";
 import MyLocationRoundedIcon from "@mui/icons-material/MyLocationRounded";
 import AlarmRoundedIcon from "@mui/icons-material/AlarmRounded";
+import PauseCircleOutlineRoundedIcon from "@mui/icons-material/PauseCircleOutlineRounded";
 import { tokens } from "../theme/theme";
 import { branchesApi } from "../api/branches";
 import { establishmentsApi } from "../api/establishments";
@@ -254,6 +255,30 @@ export default function Branches() {
     }
   }
 
+  // === إيقاف مؤقت لسلسلة رسائل المتابعة التلقائية بس لعملاء شات الويب
+  // (طلب صورة/تقييم/سؤال خلصت الزيارة...) - بيضل بس أول رسالة (تأكيد
+  // التسجيل أو ترحيب الزيارة الجديدة) بتنبعت، وما بيأثر على واتساب الحقيقي ===
+  const [webChatFollowUpsPaused, setWebChatFollowUpsPaused] = useState(
+    () => getCached(`establishmentDetail:${establishmentId}`)?.webChatFollowUpsPaused ?? false
+  );
+  const [followUpsPauseSaving, setFollowUpsPauseSaving] = useState(false);
+  const [followUpsPauseError, setFollowUpsPauseError] = useState("");
+
+  async function handleToggleWebChatFollowUps(nextValue) {
+    const previous = webChatFollowUpsPaused;
+    setWebChatFollowUpsPaused(nextValue); // تحديث فوري بالواجهة (متفائل)
+    setFollowUpsPauseSaving(true);
+    setFollowUpsPauseError("");
+    try {
+      await establishmentsApi.update(establishmentId, { webChatFollowUpsPaused: nextValue });
+    } catch (err) {
+      setWebChatFollowUpsPaused(previous); // رجّع الوضع القديم لو فشل الحفظ
+      setFollowUpsPauseError(err.message || "تعذّر حفظ الإعداد");
+    } finally {
+      setFollowUpsPauseSaving(false);
+    }
+  }
+
   // === مدة تذكير البوت (botTimings.stallReminderMinutes) - كم دقيقة
   // يستنى البوت (واتساب أو شات الويب، نفس المنطق لكليهما) قبل ما يعيد
   // نفس السؤال لو العميل ما رد عليه ===
@@ -333,6 +358,7 @@ export default function Branches() {
         setDeliveryWhatsAppNumber(est.deliveryWhatsAppNumber || "");
         setReminderMinutes(est.botTimings?.stallReminderMinutes ?? 7);
         setNotificationTitle(est.notificationSettings?.newMessageTitle || "عندك رسالة جديدة 🔔");
+        setWebChatFollowUpsPaused(est.webChatFollowUpsPaused ?? false);
       })
       .catch(() => {});
   }, [establishmentId]);
@@ -1003,6 +1029,45 @@ export default function Branches() {
             )}
           </Stack>
         </Stack>
+      </Paper>
+
+      {/* إيقاف مؤقت لرسائل متابعة شات الويب - مفيد لفترة تجريبية قصيرة،
+          بدون ما يأثر إطلاقاً على بوت الواتساب الحقيقي */}
+      <Paper elevation={0} sx={cardStyle}>
+        <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={2}>
+          <Stack direction="row" spacing={1.2} alignItems="center">
+            <PauseCircleOutlineRoundedIcon sx={{ color: tokens.muted }} />
+            <Stack spacing={0.3}>
+              <Typography sx={{ fontFamily: '"IBM Plex Sans Arabic"', fontWeight: 700, fontSize: "0.95rem" }}>
+                إيقاف مؤقت لرسائل متابعة شات الويب
+              </Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                لما تفعّله، عملاء شات الويب بس بياخدوا أول رسالة (تأكيد التسجيل، أو ترحيب الزيارة الجديدة لعميل راجع) وبتوقف سلسلة المتابعة بعدها (طلب صورة الوجبة، التقييم، سؤال "خلصت زيارتك؟"...). بوت الواتساب الحقيقي ما بيتأثر إطلاقاً.
+              </Typography>
+            </Stack>
+          </Stack>
+          <FormControlLabel
+            labelPlacement="start"
+            control={
+              <Switch
+                checked={webChatFollowUpsPaused}
+                disabled={followUpsPauseSaving}
+                onChange={(e) => handleToggleWebChatFollowUps(e.target.checked)}
+              />
+            }
+            label={
+              <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600 }}>
+                {webChatFollowUpsPaused ? "موقوفة مؤقتاً" : "شغّالة عادي"}
+              </Typography>
+            }
+            sx={{ m: 0 }}
+          />
+        </Stack>
+        {followUpsPauseError && (
+          <Typography variant="caption" sx={{ color: "error.main", fontWeight: 600, mt: 1, display: "block" }}>
+            {followUpsPauseError}
+          </Typography>
+        )}
       </Paper>
 
       {/* مدة تذكير البوت + عنوان إشعار Push - كم دقيقة يستنى قبل ما يعيد
