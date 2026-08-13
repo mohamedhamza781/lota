@@ -33,11 +33,14 @@ import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
 import QrCode2RoundedIcon from "@mui/icons-material/QrCode2Rounded";
 import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
+import CloudUploadRoundedIcon from "@mui/icons-material/CloudUploadRounded";
+import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
 import { tokens } from "../theme/theme";
 import { useAuth } from "../auth/AuthContext";
 import { fetchWebChatQrCode } from "../api/webChat";
+import { uploadImage, resolveImageUrl } from "../api/uploads";
 
-const EMPTY_ITEM_FORM = { name: "", price: "", isNew: false, categoryId: "", description: "" };
+const EMPTY_ITEM_FORM = { name: "", price: "", isNew: false, categoryId: "", description: "", imageUrl: null };
 
 export default function Menu() {
   const { establishmentId } = useParams();
@@ -66,6 +69,7 @@ export default function Menu() {
   const [editingItem, setEditingItem] = useState(null);
   const [itemForm, setItemForm] = useState(EMPTY_ITEM_FORM);
   const [formError, setFormError] = useState("");
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const [confirmDeleteCategory, setConfirmDeleteCategory] = useState(null);
   const [confirmDeleteItem, setConfirmDeleteItem] = useState(null);
@@ -124,9 +128,31 @@ export default function Menu() {
       isNew: Boolean(item.isNew),
       categoryId,
       description: item.description || "",
+      imageUrl: item.imageUrl || null,
     });
     setFormError("");
     setItemDialogOpen(true);
+  }
+
+  // بترفع صورة الصنف للباك إند (نفس مسار /uploads/image يلي بتستخدمه صور
+  // الإعلانات والعروض بـPromotions.jsx) وبتخزّن الرابط النسبي بالفورم -
+  // بدون هاي الدالة (كانت غايبة بالكامل عن الفورم) الصورة ما كانت تترفع
+  // ولا تنبعت أبداً مع الصنف، فما كانت تظهر بالمنيو العام مهما رفعها
+  // صاحب المنشأة "بصريًا" - لأنه أصلاً ما كان في زر رفع صورة إطلاقاً
+  async function handleImageChange(e) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setFormError("");
+    setUploadingImage(true);
+    try {
+      const { url } = await uploadImage(file);
+      setItemForm((f) => ({ ...f, imageUrl: url }));
+    } catch (err) {
+      setFormError(err.message || "تعذّر رفع الصورة");
+    } finally {
+      setUploadingImage(false);
+    }
   }
 
   function handleSaveItem() {
@@ -145,6 +171,7 @@ export default function Menu() {
       isNew: itemForm.isNew,
       // اختياري تماماً - بيترسل فاضي لو ما كتب صاحب المنشأة شي
       description: itemForm.description.trim(),
+      imageUrl: itemForm.imageUrl,
     };
     if (editingItem) {
       updateMenuItem(establishmentId, editingItem.categoryId, editingItem.itemId, payload);
@@ -483,15 +510,42 @@ export default function Menu() {
                       }}
                     >
                       <TableCell sx={{ fontFamily: '"IBM Plex Sans Arabic"', fontWeight: 600, fontSize: "0.92rem" }}>
-                        {it.name}
-                        {it.description && (
-                          <Typography
-                            component="div"
-                            sx={{ fontWeight: 400, fontSize: "0.78rem", color: tokens.muted, mt: 0.25 }}
-                          >
-                            {it.description}
-                          </Typography>
-                        )}
+                        <Stack direction="row" spacing={1.2} alignItems="center">
+                          {it.imageUrl ? (
+                            <Box
+                              component="img"
+                              src={resolveImageUrl(it.imageUrl)}
+                              alt=""
+                              sx={{ width: 34, height: 34, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
+                            />
+                          ) : (
+                            <Box
+                              sx={{
+                                width: 34,
+                                height: 34,
+                                borderRadius: "50%",
+                                bgcolor: "rgba(0,0,0,0.05)",
+                                flexShrink: 0,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                              }}
+                            >
+                              <ImageOutlinedIcon sx={{ fontSize: 16, color: tokens.mutedLight }} />
+                            </Box>
+                          )}
+                          <Box>
+                            {it.name}
+                            {it.description && (
+                              <Typography
+                                component="div"
+                                sx={{ fontWeight: 400, fontSize: "0.78rem", color: tokens.muted, mt: 0.25 }}
+                              >
+                                {it.description}
+                              </Typography>
+                            )}
+                          </Box>
+                        </Stack>
                       </TableCell>
                       <TableCell sx={{ fontFamily: '"IBM Plex Sans Arabic"', fontWeight: 700, fontSize: "0.92rem" }}>
                         {Number(it.price).toFixed(2)} ₪
@@ -660,6 +714,56 @@ export default function Menu() {
                 {formError}
               </Typography>
             )}
+
+            {/* رفع صورة الصنف - هاي الصورة يلي بتظهر بالكارد الدائري
+                بصفحة المنيو العام (شوف DishCard.jsx) */}
+            <Stack alignItems="center" spacing={1}>
+              {itemForm.imageUrl ? (
+                <Box
+                  component="img"
+                  src={resolveImageUrl(itemForm.imageUrl)}
+                  alt="معاينة"
+                  sx={{ width: "100%", height: 140, objectFit: "cover", borderRadius: "12px" }}
+                />
+              ) : (
+                <Box
+                  sx={{
+                    width: "100%",
+                    height: 140,
+                    borderRadius: "12px",
+                    bgcolor: "rgba(0,0,0,0.04)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <ImageOutlinedIcon sx={{ fontSize: 32, color: tokens.mutedLight }} />
+                </Box>
+              )}
+              <Stack direction="row" spacing={1}>
+                <Button
+                  component="label"
+                  size="small"
+                  startIcon={<CloudUploadRoundedIcon fontSize="small" />}
+                  disabled={uploadingImage}
+                  sx={{ color: tokens.ink, fontFamily: '"IBM Plex Sans Arabic"', fontWeight: 600 }}
+                >
+                  {uploadingImage ? "جاري الرفع..." : itemForm.imageUrl ? "تغيير الصورة" : "رفع صورة"}
+                  <input type="file" accept="image/*" hidden onChange={handleImageChange} />
+                </Button>
+                {itemForm.imageUrl && !uploadingImage && (
+                  <Button
+                    size="small"
+                    color="error"
+                    onClick={() => setItemForm((f) => ({ ...f, imageUrl: null }))}
+                    sx={{ fontFamily: '"IBM Plex Sans Arabic"' }}
+                  >
+                    إزالة
+                  </Button>
+                )}
+              </Stack>
+            </Stack>
+
             <TextField
               label="اسم الصنف"
               size="small"
@@ -729,6 +833,7 @@ export default function Menu() {
           <Button
             onClick={handleSaveItem}
             variant="contained"
+            disabled={uploadingImage}
             sx={{
               backgroundColor: tokens.ink,
               color: tokens.paper,
