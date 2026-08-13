@@ -23,7 +23,6 @@ export default function DishCard({ name, price, description, imageUrl, isNew }) 
         boxShadow: "0 10px 24px -16px rgba(0,0,0,0.25)",
         p: { xs: 1, sm: 2 },
         pt: { xs: 4.25, sm: 6 },
-        height: "100%",
         display: "flex",
         flexDirection: "column",
         transition: "transform 0.2s ease, box-shadow 0.2s ease",
@@ -128,7 +127,7 @@ export default function DishCard({ name, price, description, imageUrl, isNew }) 
 
       <Typography
         sx={{
-          mt: "auto",
+          mt: { xs: 1, sm: 1.5 },
           pt: { xs: 0.75, sm: 1.25 },
           fontFamily: '"IBM Plex Sans Arabic"',
           fontWeight: 800,

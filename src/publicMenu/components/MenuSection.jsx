@@ -47,6 +47,7 @@ export default function MenuSection({ id, title, items, count }) {
             md: "repeat(4, 1fr)",
             lg: "repeat(5, 1fr)",
           },
+          alignItems: "start",
           gap: { xs: 1, sm: 2.5 },
         }}
       >
