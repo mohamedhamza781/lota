@@ -35,20 +35,20 @@ export default function MenuSection({ id, title, items, count }) {
         </Typography>
       </Stack>
 
-      {/* شبكة كاردات الأصناف - ٣ أعمدة ثابتة على الموبايل (حسب الطلب، عشان
-          تجربة التصفح تكون مضغوطة وسريعة)، وبتزيد تدريجيًا على الشاشات
-          الأوسع. gap صغير على الموبايل عشان ٣ كاردات ترتاح بعرض الشاشة */}
+      {/* شبكة كاردات الأصناف - كاردين بالصف على الموبايل (كارد أعرض مع صورة
+          كاملة العرض فوقه، حسب التصميم الجديد)، وبتزيد تدريجيًا على
+          الشاشات الأوسع */}
       <Box
         sx={{
           display: "grid",
           gridTemplateColumns: {
-            xs: "repeat(3, 1fr)",
+            xs: "repeat(2, 1fr)",
             sm: "repeat(3, 1fr)",
             md: "repeat(4, 1fr)",
             lg: "repeat(5, 1fr)",
           },
           alignItems: "start",
-          gap: { xs: 1, sm: 2.5 },
+          gap: { xs: 1.5, sm: 2.5 },
         }}
       >
         {items.map((it) => (

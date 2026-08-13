@@ -224,6 +224,9 @@ export default function PublicMenu({ slugProp, hideDialog = false } = {}) {
       isNew: it.isNew,
       description: it.description,
       imageUrl: it.imageUrl,
+      // بيتعرض تحت اسم الصنف بالكارد الجديد (زي "Main Course" بالتصميم
+      // المرجعي) - بناخده من اسم القسم نفسه بدل ما نضيف حقل جديد بالباك إند
+      category: cat.name,
     })),
   }));
 
