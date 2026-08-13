@@ -120,15 +120,14 @@ export default function DishCard({ name, price, description, imageUrl, imageUrls
           </Typography>
         )}
 
-        {/* الشرح - مخفي بشاشات الموبايل الصغيرة عشان الكارد يضل مضغوط؛
-            بيظهر من sm فما فوق */}
+        {/* الشرح - بيظهر بكل الشاشات (موبايل وديسكتوب) */}
         {description && (
           <Typography
             sx={{
-              display: { xs: "none", sm: "-webkit-box" },
+              display: "-webkit-box",
               fontFamily: '"IBM Plex Sans Arabic"',
               color: "text.secondary",
-              fontSize: 12.5,
+              fontSize: { xs: 11, sm: 12.5 },
               lineHeight: 1.5,
               WebkitLineClamp: 2,
               WebkitBoxOrient: "vertical",

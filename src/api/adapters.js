@@ -131,6 +131,7 @@ export function normalizeCategoriesWithProducts(categories, products) {
         name: p.name,
         price: p.price,
         imageUrl: p.imageUrl,
+        imageUrls: Array.isArray(p.imageUrls) ? p.imageUrls : [],
         isNew: !!p.isNewItem,
         order: p.order,
         description: p.description || "",
