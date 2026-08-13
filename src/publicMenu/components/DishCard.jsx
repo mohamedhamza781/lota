@@ -115,21 +115,6 @@ export default function DishCard({ name, price, description, imageUrl, imageUrls
           {name}
         </Typography>
 
-        <Typography
-          sx={{
-            fontFamily: '"IBM Plex Sans Arabic"',
-            color: "text.secondary",
-            fontSize: { xs: 10.5, sm: 12.5 },
-            lineHeight: 1.4,
-            height: { xs: 15, sm: 17.5 },
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-          }}
-        >
-          {category || "\u00A0"}
-        </Typography>
-
         {/* الشرح - مساحته محجوزة دايماً (سطرين) حتى لو الصنف بدون وصف،
             عشان الكارد يضل بنفس الحجم بالضبط مع باقي كاردات نفس الشبكة */}
         <Typography
