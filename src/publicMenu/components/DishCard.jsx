@@ -89,6 +89,7 @@ export default function DishCard({ name, price, description, imageUrl, isNew, ca
             color: "text.primary",
             fontSize: { xs: 12.5, sm: 15 },
             lineHeight: 1.35,
+            minHeight: { xs: 32, sm: 42 },
             display: "-webkit-box",
             WebkitLineClamp: 2,
             WebkitBoxOrient: "vertical",
@@ -105,6 +106,9 @@ export default function DishCard({ name, price, description, imageUrl, isNew, ca
               color: "text.secondary",
               fontSize: { xs: 10.5, sm: 12.5 },
               lineHeight: 1.4,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
             }}
           >
             {category}
