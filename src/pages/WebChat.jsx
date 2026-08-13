@@ -3321,7 +3321,7 @@ export default function WebChat() {
       const isRegistrationHandshake =
         registrationStepRef.current !== "idle" && registrationStepRef.current !== "done";
       if (!isRegistrationHandshake) {
-        pushMessage({ from: "bot", text: data.text, at: data.at });
+        pushMessage({ from: "bot", text: data.text, imageUrl: data.imageUrl || null, at: data.at });
       }
 
       // كشف رسالة "ملخص نهاية الزيارة" (نص ثابت بالقالب، شوف

@@ -29,6 +29,9 @@ import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import FileDownloadRoundedIcon from "@mui/icons-material/FileDownloadRounded";
 import PictureAsPdfRoundedIcon from "@mui/icons-material/PictureAsPdfRounded";
 import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
+import SendRoundedIcon from "@mui/icons-material/SendRounded";
+import ImageRoundedIcon from "@mui/icons-material/ImageRounded";
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import { SectionHeader } from "../components/SectionHeader";
 import { tokens } from "../theme/theme";
 import { conversationsApi } from "../api/conversations";
@@ -119,6 +122,12 @@ export default function Conversations() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
+  const [replyText, setReplyText] = useState("");
+  const [replyImage, setReplyImage] = useState(null); // File
+  const [replyImagePreview, setReplyImagePreview] = useState(null); // blob url
+  const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState("");
+
   const load = useCallback(() => {
     if (!establishmentId) return;
     setLoading(true);
@@ -148,6 +157,9 @@ export default function Conversations() {
 
   async function handleOpen(waId) {
     setOpenLoading(true);
+    setReplyText("");
+    clearReplyImage();
+    setSendError("");
     try {
       const data = await conversationsApi.get(waId, establishmentId);
       setOpenConv(data);
@@ -155,6 +167,75 @@ export default function Conversations() {
       setError(err.message || "تعذّر فتح المحادثة");
     } finally {
       setOpenLoading(false);
+    }
+  }
+
+  function handleCloseConv() {
+    setOpenConv(null);
+    setReplyText("");
+    clearReplyImage();
+    setSendError("");
+  }
+
+  function clearReplyImage() {
+    setReplyImage(null);
+    setReplyImagePreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+  }
+
+  function handlePickImage(e) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // بيسمح تختار نفس الملف مرتين متتاليتين
+    if (!file) return;
+    clearReplyImage();
+    setReplyImage(file);
+    setReplyImagePreview(URL.createObjectURL(file));
+  }
+
+  async function handleSendReply() {
+    if (!openConv?.waId) return;
+    const text = replyText.trim();
+    if (!text && !replyImage) return;
+
+    setSending(true);
+    setSendError("");
+    try {
+      const result = await conversationsApi.sendMessage(openConv.waId, {
+        text,
+        image: replyImage,
+        establishmentId,
+      });
+
+      const newMsg = {
+        id: `local-${Date.now()}`,
+        from: "bot",
+        text,
+        imageUrl: result?.imageUrl || null,
+        at: new Date().toISOString(),
+      };
+      setOpenConv((prev) => (prev ? { ...prev, messages: [...prev.messages, newMsg] } : prev));
+      setRows((prev) =>
+        prev.map((r) =>
+          r.waId === openConv.waId
+            ? {
+                ...r,
+                lastMessagePreview: text || (newMsg.imageUrl ? "📷 صورة" : r.lastMessagePreview),
+                lastMessageAt: newMsg.at,
+                lastMessageFrom: "bot",
+                messageCount: (r.messageCount || 0) + 1,
+              }
+            : r
+        )
+      );
+
+      setReplyText("");
+      clearReplyImage();
+    } catch (err) {
+      setSendError(err.message || "تعذّر إرسال الرسالة");
+    } finally {
+      setSending(false);
     }
   }
 
@@ -380,7 +461,7 @@ export default function Conversations() {
       {/* نافذة فتح المحادثة */}
       <Dialog
         open={Boolean(openConv) || openLoading}
-        onClose={() => setOpenConv(null)}
+        onClose={handleCloseConv}
         maxWidth="sm"
         fullWidth
         PaperProps={{ sx: { borderRadius: "20px" } }}
@@ -427,6 +508,86 @@ export default function Conversations() {
             </Stack>
           )}
         </DialogContent>
+
+        {/* صندوق الرد اليدوي - إرسال نص و/أو صورة مباشرة لعميل شات الويب */}
+        {openConv && (
+          <Box sx={{ px: 2, pt: 1.5, borderTop: `1px solid ${tokens.hairline || "rgba(0,0,0,0.08)"}` }}>
+            {sendError && (
+              <Typography variant="caption" sx={{ color: "error.main", display: "block", mb: 0.8, fontFamily: '"IBM Plex Sans Arabic"' }}>
+                {sendError}
+              </Typography>
+            )}
+            {replyImagePreview && (
+              <Box sx={{ position: "relative", display: "inline-block", mb: 1 }}>
+                <Box
+                  component="img"
+                  src={replyImagePreview}
+                  alt="معاينة الصورة"
+                  sx={{ width: 64, height: 64, objectFit: "cover", borderRadius: "10px", border: `1px solid ${tokens.hairline}` }}
+                />
+                <IconButton
+                  size="small"
+                  onClick={clearReplyImage}
+                  sx={{
+                    position: "absolute",
+                    top: -8,
+                    left: -8,
+                    width: 20,
+                    height: 20,
+                    backgroundColor: "background.paper",
+                    border: `1px solid ${tokens.hairline}`,
+                    "&:hover": { backgroundColor: "background.paper" },
+                  }}
+                >
+                  <CloseRoundedIcon sx={{ fontSize: 14 }} />
+                </IconButton>
+              </Box>
+            )}
+            <Stack direction="row" spacing={1} alignItems="center">
+              <input id="reply-image-input" type="file" accept="image/*" hidden onChange={handlePickImage} />
+              <Tooltip title="إرفاق صورة">
+                <span>
+                  <IconButton
+                    component="label"
+                    htmlFor="reply-image-input"
+                    size="small"
+                    disabled={sending}
+                    sx={{ color: tokens.ink }}
+                  >
+                    <ImageRoundedIcon fontSize="small" />
+                  </IconButton>
+                </span>
+              </Tooltip>
+              <TextField
+                size="small"
+                fullWidth
+                placeholder="اكتب رسالة للعميل…"
+                value={replyText}
+                onChange={(e) => setReplyText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSendReply();
+                  }
+                }}
+                disabled={sending}
+                sx={{ "& .MuiOutlinedInput-root": { borderRadius: "12px", fontFamily: '"IBM Plex Sans Arabic"' } }}
+              />
+              <Tooltip title="إرسال">
+                <span>
+                  <IconButton
+                    onClick={handleSendReply}
+                    disabled={sending || (!replyText.trim() && !replyImage)}
+                    sx={{ color: "#fff", backgroundColor: tokens.ink, "&:hover": { backgroundColor: tokens.ink }, "&.Mui-disabled": { backgroundColor: tokens.surfaceAlt, color: tokens.muted } }}
+                  >
+                    <SendRoundedIcon fontSize="small" />
+                  </IconButton>
+                </span>
+              </Tooltip>
+            </Stack>
+          </Box>
+        )}
+
         <DialogActions sx={{ p: 2 }}>
           <Button
             size="small"
@@ -446,7 +607,7 @@ export default function Conversations() {
           >
             تصدير Excel
           </Button>
-          <Button size="small" onClick={() => setOpenConv(null)} sx={{ textTransform: "none", fontFamily: '"IBM Plex Sans Arabic"' }}>
+          <Button size="small" onClick={handleCloseConv} sx={{ textTransform: "none", fontFamily: '"IBM Plex Sans Arabic"' }}>
             إغلاق
           </Button>
         </DialogActions>
