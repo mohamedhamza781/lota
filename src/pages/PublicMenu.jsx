@@ -224,6 +224,9 @@ export default function PublicMenu({ slugProp, hideDialog = false } = {}) {
       isNew: it.isNew,
       description: it.description,
       imageUrl: it.imageUrl,
+      // لغاية ٣ صور لنفس الصنف - بتنعرض بديالوغ المعرض لما يضغط الزبون
+      // على الكارد (شوف DishGalleryDialog.jsx)
+      imageUrls: it.imageUrls || (it.imageUrl ? [it.imageUrl] : []),
       // بيتعرض تحت اسم الصنف بالكارد الجديد (زي "Main Course" بالتصميم
       // المرجعي) - بناخده من اسم القسم نفسه بدل ما نضيف حقل جديد بالباك إند
       category: cat.name,

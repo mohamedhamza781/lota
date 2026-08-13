@@ -40,7 +40,8 @@ import { useAuth } from "../auth/AuthContext";
 import { fetchWebChatQrCode } from "../api/webChat";
 import { uploadImage, resolveImageUrl } from "../api/uploads";
 
-const EMPTY_ITEM_FORM = { name: "", price: "", isNew: false, categoryId: "", description: "", imageUrl: null };
+const EMPTY_ITEM_FORM = { name: "", price: "", isNew: false, categoryId: "", description: "", imageUrls: [] };
+const MAX_ITEM_IMAGES = 3;
 
 export default function Menu() {
   const { establishmentId } = useParams();
@@ -128,31 +129,38 @@ export default function Menu() {
       isNew: Boolean(item.isNew),
       categoryId,
       description: item.description || "",
-      imageUrl: item.imageUrl || null,
+      // توافق عكسي: أصناف قديمة إلها imageUrl بس (بدون imageUrls) - منعتبرها
+      // أول عنصر بمصفوفة من صورة وحدة
+      imageUrls: item.imageUrls?.length ? item.imageUrls : item.imageUrl ? [item.imageUrl] : [],
     });
     setFormError("");
     setItemDialogOpen(true);
   }
 
   // بترفع صورة الصنف للباك إند (نفس مسار /uploads/image يلي بتستخدمه صور
-  // الإعلانات والعروض بـPromotions.jsx) وبتخزّن الرابط النسبي بالفورم -
-  // بدون هاي الدالة (كانت غايبة بالكامل عن الفورم) الصورة ما كانت تترفع
-  // ولا تنبعت أبداً مع الصنف، فما كانت تظهر بالمنيو العام مهما رفعها
-  // صاحب المنشأة "بصريًا" - لأنه أصلاً ما كان في زر رفع صورة إطلاقاً
+  // الإعلانات والعروض بـPromotions.jsx) وبتضيف الرابط النسبي لمصفوفة صور
+  // الفورم (لغاية ٣ صور - شوف MAX_ITEM_IMAGES) - بدون هاي الدالة (كانت
+  // غايبة بالكامل عن الفورم) الصورة ما كانت تترفع ولا تنبعت أبداً مع
+  // الصنف، فما كانت تظهر بالمنيو العام مهما رفعها صاحب المنشأة "بصريًا"
   async function handleImageChange(e) {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
+    if (itemForm.imageUrls.length >= MAX_ITEM_IMAGES) return;
     setFormError("");
     setUploadingImage(true);
     try {
       const { url } = await uploadImage(file);
-      setItemForm((f) => ({ ...f, imageUrl: url }));
+      setItemForm((f) => ({ ...f, imageUrls: [...f.imageUrls, url] }));
     } catch (err) {
       setFormError(err.message || "تعذّر رفع الصورة");
     } finally {
       setUploadingImage(false);
     }
+  }
+
+  function removeItemImage(indexToRemove) {
+    setItemForm((f) => ({ ...f, imageUrls: f.imageUrls.filter((_, i) => i !== indexToRemove) }));
   }
 
   function handleSaveItem() {
@@ -171,7 +179,7 @@ export default function Menu() {
       isNew: itemForm.isNew,
       // اختياري تماماً - بيترسل فاضي لو ما كتب صاحب المنشأة شي
       description: itemForm.description.trim(),
-      imageUrl: itemForm.imageUrl,
+      imageUrls: itemForm.imageUrls,
     };
     if (editingItem) {
       updateMenuItem(establishmentId, editingItem.categoryId, editingItem.itemId, payload);
@@ -715,52 +723,66 @@ export default function Menu() {
               </Typography>
             )}
 
-            {/* رفع صورة الصنف - هاي الصورة يلي بتظهر بالكارد الدائري
-                بصفحة المنيو العام (شوف DishCard.jsx) */}
-            <Stack alignItems="center" spacing={1}>
-              {itemForm.imageUrl ? (
-                <Box
-                  component="img"
-                  src={resolveImageUrl(itemForm.imageUrl)}
-                  alt="معاينة"
-                  sx={{ width: "100%", height: 140, objectFit: "cover", borderRadius: "12px" }}
-                />
-              ) : (
-                <Box
-                  sx={{
-                    width: "100%",
-                    height: 140,
-                    borderRadius: "12px",
-                    bgcolor: "rgba(0,0,0,0.04)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <ImageOutlinedIcon sx={{ fontSize: 32, color: tokens.mutedLight }} />
-                </Box>
-              )}
+            {/* رفع صور الصنف - لغاية ٣ صور، بتظهر بديالوغ معرض الصور لما
+                الزبون يضغط على كارد الصنف بالمنيو العام (شوف DishCard.jsx
+                وDishGalleryDialog.jsx). أول صورة برضه هي غلاف الكارد نفسه. */}
+            <Stack spacing={1}>
+              <Typography sx={{ fontFamily: '"IBM Plex Sans Arabic"', fontSize: "0.8rem", fontWeight: 600, color: tokens.muted }}>
+                صور الصنف ({itemForm.imageUrls.length}/{MAX_ITEM_IMAGES})
+              </Typography>
               <Stack direction="row" spacing={1}>
-                <Button
-                  component="label"
-                  size="small"
-                  startIcon={<CloudUploadRoundedIcon fontSize="small" />}
-                  disabled={uploadingImage}
-                  sx={{ color: tokens.ink, fontFamily: '"IBM Plex Sans Arabic"', fontWeight: 600 }}
-                >
-                  {uploadingImage ? "جاري الرفع..." : itemForm.imageUrl ? "تغيير الصورة" : "رفع صورة"}
-                  <input type="file" accept="image/*" hidden onChange={handleImageChange} />
-                </Button>
-                {itemForm.imageUrl && !uploadingImage && (
+                {itemForm.imageUrls.map((url, i) => (
+                  <Box key={url + i} sx={{ position: "relative", width: 88, height: 88, flexShrink: 0 }}>
+                    <Box
+                      component="img"
+                      src={resolveImageUrl(url)}
+                      alt={`معاينة ${i + 1}`}
+                      sx={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "10px" }}
+                    />
+                    <IconButton
+                      size="small"
+                      onClick={() => removeItemImage(i)}
+                      sx={{
+                        position: "absolute",
+                        top: -6,
+                        insetInlineEnd: -6,
+                        bgcolor: "background.paper",
+                        boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
+                        width: 22,
+                        height: 22,
+                        "&:hover": { bgcolor: "background.paper" },
+                      }}
+                    >
+                      <DeleteOutlineRoundedIcon sx={{ fontSize: 14, color: "error.main" }} />
+                    </IconButton>
+                  </Box>
+                ))}
+
+                {itemForm.imageUrls.length < MAX_ITEM_IMAGES && (
                   <Button
-                    size="small"
-                    color="error"
-                    onClick={() => setItemForm((f) => ({ ...f, imageUrl: null }))}
-                    sx={{ fontFamily: '"IBM Plex Sans Arabic"' }}
+                    component="label"
+                    disabled={uploadingImage}
+                    sx={{
+                      width: 88,
+                      height: 88,
+                      flexShrink: 0,
+                      borderRadius: "10px",
+                      border: "1px dashed",
+                      borderColor: "rgba(0,0,0,0.2)",
+                      color: tokens.muted,
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 0.5,
+                    }}
                   >
-                    إزالة
+                    <CloudUploadRoundedIcon fontSize="small" />
+                    <Typography sx={{ fontFamily: '"IBM Plex Sans Arabic"', fontSize: "0.65rem" }}>
+                      {uploadingImage ? "جاري الرفع..." : "إضافة"}
+                    </Typography>
+                    <input type="file" accept="image/*" hidden onChange={handleImageChange} />
                   </Button>
                 )}
+
               </Stack>
             </Stack>
 

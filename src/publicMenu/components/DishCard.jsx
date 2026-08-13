@@ -10,11 +10,15 @@ import { resolveImageUrl } from "../../api/uploads";
 // أصلاً محسوب من menuPrimaryColor تبع كل منشأة (شوف buildPublicMenuTheme
 // بـtheme.js) - فكل منشأة بتشوف كاردات بألوانها هي تلقائياً بدون أي كود
 // إضافي هون.
-export default function DishCard({ name, price, description, imageUrl, isNew, category }) {
+export default function DishCard({ name, price, description, imageUrl, imageUrls, isNew, category, onOpenGallery }) {
   const resolvedImage = imageUrl ? resolveImageUrl(imageUrl) : null;
+  // الديالوغ إله معنى بس لو في صورة وحدة عالأقل - لو الصنف بدون صور
+  // خالص، الكارد بيضل قابل للعرض العادي بس مش قابل للضغط
+  const hasImages = Boolean(imageUrls?.length);
 
   return (
     <Box
+      onClick={hasImages ? () => onOpenGallery?.({ name, price, description, imageUrls, category }) : undefined}
       sx={{
         position: "relative",
         borderRadius: { xs: "16px", sm: "20px" },
@@ -25,6 +29,7 @@ export default function DishCard({ name, price, description, imageUrl, isNew, ca
         overflow: "hidden",
         display: "flex",
         flexDirection: "column",
+        cursor: hasImages ? "pointer" : "default",
         transition: "transform 0.2s ease, box-shadow 0.2s ease",
         "&:hover": {
           transform: { sm: "translateY(-3px)" },

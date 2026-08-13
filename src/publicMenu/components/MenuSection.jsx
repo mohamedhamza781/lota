@@ -1,7 +1,12 @@
+import { useState } from "react";
 import { Box, Typography, Stack } from "@mui/material";
 import DishCard from "./DishCard";
+import DishGalleryDialog from "./DishGalleryDialog";
 
 export default function MenuSection({ id, title, items, count }) {
+  // الصنف المفتوح حاليًا بديالوغ معرض الصور (null = الديالوغ مقفول)
+  const [galleryItem, setGalleryItem] = useState(null);
+
   return (
     <Box id={id} sx={{ mb: { xs: 5, md: 8 } }}>
       {/* عنوان القسم ثابت (sticky) طول ما إحنا عم نمرّر بين عناصر نفس القسم —
@@ -52,9 +57,11 @@ export default function MenuSection({ id, title, items, count }) {
         }}
       >
         {items.map((it) => (
-          <DishCard key={it.name} {...it} />
+          <DishCard key={it.name} {...it} onOpenGallery={setGalleryItem} />
         ))}
       </Box>
+
+      <DishGalleryDialog item={galleryItem} onClose={() => setGalleryItem(null)} />
     </Box>
   );
 }
