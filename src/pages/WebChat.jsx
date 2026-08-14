@@ -3446,7 +3446,32 @@ export default function WebChat() {
 
     socket.on("disconnect", () => setConnectionState("reconnecting"));
 
+    // 🩹 [إصلاح] لما التطبيق (خصوصاً PWA مثبّت على الموبايل) يكون
+    // بالخلفية، المتصفح بيجمّد تنفيذ الجافاسكربت - يعني الـsocket ما
+    // بيلاحظ انقطاع الاتصال (مثلاً بسبب إعادة تشغيل السيرفر وقت ديبلوي)
+    // ولا يعيد الاتصال تلقائياً إلا لما يرجع المستخدم يفتح التطبيق فعلياً.
+    // بدون هاد المستمع، عميل فاتح تابه/تطبيقه بالخلفية وقت أي ديبلوي
+    // بيضل عالق على بيانات "join" قديمة (مثلاً lastVisitAt قديم/فاضي)
+    // لحد ما يسكّر التطبيق ويفتحه من جديد يدوياً. هلق: كل مرة يرجع فيها
+    // التطبيق يصير ظاهر (visibilitychange -> "visible")، منبعت "join" من
+    // جديد فوراً (بغض النظر عن حالة الاتصال) - هيك منضمن مزامنة فورية مع
+    // أحدث بيانات بالسيرفر (chatLocked, lastVisitAt, history...) بدون ما
+    // يحتاج العميل يعمل أي شي يدوي.
+    const handleVisibilityChange = () => {
+      if (document.visibilityState !== "visible") return;
+      socket.emit("join", {
+        slug,
+        chatId: localStorage.getItem(storageKey),
+        viaQr,
+        referralCode,
+        geo: geoRef.current,
+        qrScannedMsAgo: Math.max(0, Date.now() - pageLoadAtRef.current),
+      });
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
     return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       socket.disconnect();
     };
   }, [slug, storageKey, pushMessage, screen, viaQr, referralCode]);
