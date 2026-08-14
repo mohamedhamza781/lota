@@ -2824,6 +2824,13 @@ export default function WebChat() {
   // الوقت المنقضي بدون ما نحتاج ريفرش كامل للصفحة
   const [showQrScanner, setShowQrScanner] = useState(false);
   const [qrIconTick, setQrIconTick] = useState(0);
+  // 🩹 [إصلاح جذري] القرار الجاهز الجاي من السيرفر مباشرة (data.showQrRescanIcon
+  // بحدث "joined" - شوف webChat.service.js) - مصدر الحقيقة الأساسي، بيتحدّث
+  // في كل مرة نتصل/نعيد الاتصال (شوف visibilitychange تحت). منسيب حساب
+  // localStorage المحلي (showQrRescanIcon الأصلي تحت) كطبقة احتياطية إضافية
+  // بس (مثلاً لو التاب ضل مفتوح فترة طويلة بدون reconnect جديد وعدّت الـ١٢
+  // ساعة بنفس الجلسة) - القيمة النهائية المعروضة هي "أو" بين الاثنين.
+  const [serverShowQrRescanIcon, setServerShowQrRescanIcon] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(() => setQrIconTick((t) => t + 1), 60 * 1000);
@@ -3243,6 +3250,11 @@ export default function WebChat() {
         setQrIconTick((t) => t + 1);
       }
 
+      // 🩹 [إصلاح جذري] القرار الجاهز جاي من السيرفر مباشرة - ما بيعتمد
+      // على أي localStorage أو حساب محلي، فبيشتغل صح فوراً حتى لو ضاع
+      // الكاش المحلي أو كان أول اتصال من جهاز/متصفح جديد كلياً
+      setServerShowQrRescanIcon(Boolean(data.showQrRescanIcon));
+
       // بيرجع المحادثة السابقة كاملة من الباك إند (لو عميل راجع بنفس
       // الـchatId) - هيك المحادثة بتضل موجودة حتى لو عمل ريفرش للصفحة،
       // بدل ما تنمسح وتبلش فاضية من جديد كل مرة
@@ -3479,7 +3491,7 @@ export default function WebChat() {
   // نفس شرط "عدّت نافذة الزيارة" يلي الباك إند بيتحقق منه (VISIT_WINDOW_HOURS
   // بـwhatsapp.service.js، ١٢ ساعة افتراضياً) - بس هون بس عشان نقرر نوري
   // الأيقونة ولا لأ، مش قرار نهائي (القرار الحقيقي دايماً بالسيرفر)
-  const showQrRescanIcon = useMemo(() => {
+  const localShowQrRescanIcon = useMemo(() => {
     if (screen !== "chat" || !chatId) return false;
     try {
       const lastScan = Number(localStorage.getItem(lastQrScanKey)) || 0;
@@ -3490,6 +3502,11 @@ export default function WebChat() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [screen, chatId, lastQrScanKey, qrIconTick]);
+
+  // 🩹 [إصلاح جذري] القيمة النهائية المعروضة: قرار السيرفر (مصدر الحقيقة،
+  // موثوق ١٠٠% ومش معتمد على أي شي محلي) "أو" الحساب المحلي (طبقة احتياطية
+  // بس لو التاب ضل مفتوح وعدّت الـ١٢ ساعة بنفس الجلسة بدون reconnect جديد)
+  const showQrRescanIcon = serverShowQrRescanIcon || localShowQrRescanIcon;
 
   // بينفّذ لما مسح QR جوا الشات (InChatQrScanner) ينجح ويتحقق إنه فعلاً
   // كود هاد المحل - منبعت trigger زيارة جديدة عبر نفس الـsocket المفتوح
@@ -3504,6 +3521,7 @@ export default function WebChat() {
       // تجاهل
     }
     setQrIconTick((t) => t + 1); // يخفي الأيقونة فوراً لحد ما تعدي ١٢ ساعة تانية
+    setServerShowQrRescanIcon(false); // 🩹 [إصلاح جذري] نفس الشي لقرار السيرفر
 
     const emitVisitTrigger = (geo) => {
       socketRef.current?.emit("client_message", { text: "•", silent: true, geo, viaQr: true });
