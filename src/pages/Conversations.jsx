@@ -32,6 +32,8 @@ import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
 import SendRoundedIcon from "@mui/icons-material/SendRounded";
 import ImageRoundedIcon from "@mui/icons-material/ImageRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import LockOpenRoundedIcon from "@mui/icons-material/LockOpenRounded";
+import LockRoundedIcon from "@mui/icons-material/LockRounded";
 import { SectionHeader } from "../components/SectionHeader";
 import { tokens } from "../theme/theme";
 import { conversationsApi } from "../api/conversations";
@@ -122,6 +124,8 @@ export default function Conversations() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
+  // 🆕 [فتح المحادثة يدوياً] حالة تحميل زر فتح/قفل صندوق الكتابة عند العميل
+  const [togglingChat, setTogglingChat] = useState(false);
   const [replyText, setReplyText] = useState("");
   const [replyImage, setReplyImage] = useState(null); // File
   const [replyImagePreview, setReplyImagePreview] = useState(null); // blob url
@@ -167,6 +171,25 @@ export default function Conversations() {
       setError(err.message || "تعذّر فتح المحادثة");
     } finally {
       setOpenLoading(false);
+    }
+  }
+
+  // 🆕 [فتح المحادثة يدوياً] بتفتح/تسكر صندوق الكتابة عند العميل يدوياً -
+  // مفيدة لما المحادثة منتهية (openConv.ended=true) بس بدنا نبعتله سؤال
+  // ونسمحله يرد عليه. منحدّث openConv.adminChatOverride محلياً فوراً
+  // (بدون ما ننتظر إعادة فتح المحادثة) عشان الزر يتبدّل فوراً.
+  async function handleToggleChatOverride() {
+    if (!openConv?.waId) return;
+    const nextOpen = !openConv.adminChatOverride;
+    setTogglingChat(true);
+    try {
+      await conversationsApi.toggleChatOverride(openConv.waId, nextOpen, establishmentId);
+      setOpenConv((prev) => (prev ? { ...prev, adminChatOverride: nextOpen } : prev));
+      setRows((prev) => prev.map((r) => (r.waId === openConv.waId ? { ...r, adminChatOverride: nextOpen } : r)));
+    } catch (err) {
+      setSendError(err.message || "تعذّر تغيير حالة المحادثة");
+    } finally {
+      setTogglingChat(false);
     }
   }
 
@@ -423,18 +446,27 @@ export default function Conversations() {
                       />
                     </TableCell>
                     <TableCell align="center">
-                      <Chip
-                        size="small"
-                        label={r.ended ? "منتهية" : "مستمرة"}
-                        sx={{
-                          borderRadius: "8px",
-                          backgroundColor: r.ended ? "rgba(0,0,0,0.06)" : "rgba(46, 125, 50, 0.1)",
-                          color: r.ended ? tokens.muted : "#2e7d32",
-                          fontFamily: '"IBM Plex Sans Arabic"',
-                          fontWeight: 700,
-                          fontSize: "0.75rem",
-                        }}
-                      />
+                      <Stack direction="row" spacing={0.5} justifyContent="center" alignItems="center">
+                        <Chip
+                          size="small"
+                          label={r.ended ? "منتهية" : "مستمرة"}
+                          sx={{
+                            borderRadius: "8px",
+                            backgroundColor: r.ended ? "rgba(0,0,0,0.06)" : "rgba(46, 125, 50, 0.1)",
+                            color: r.ended ? tokens.muted : "#2e7d32",
+                            fontFamily: '"IBM Plex Sans Arabic"',
+                            fontWeight: 700,
+                            fontSize: "0.75rem",
+                          }}
+                        />
+                        {/* 🆕 [فتح المحادثة يدوياً] مؤشر صغير إنه المحادثة
+                            مفتوحة يدوياً حالياً رغم إنها منتهية أصلاً */}
+                        {r.ended && r.adminChatOverride && (
+                          <Tooltip title="مفتوحة يدوياً حالياً - العميل يقدر يرد">
+                            <LockOpenRoundedIcon sx={{ fontSize: 15, color: "#2e7d32" }} />
+                          </Tooltip>
+                        )}
+                      </Stack>
                     </TableCell>
                     <TableCell align="center">
                       <Stack direction="row" spacing={0.3} justifyContent="center">
@@ -467,12 +499,36 @@ export default function Conversations() {
         PaperProps={{ sx: { borderRadius: "20px" } }}
       >
         <DialogTitle sx={{ fontFamily: '"IBM Plex Sans Arabic"', fontWeight: 800 }}>
-          {openConv?.customer?.name || openConv?.waId || "محادثة"}
-          {openConv && (
-            <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontWeight: 400, mt: 0.3 }}>
-              {openConv.customer?.phone || openConv.waId} — {openConv.ended ? "منتهية" : "مستمرة"}
-            </Typography>
-          )}
+          <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={1}>
+            <Box>
+              {openConv?.customer?.name || openConv?.waId || "محادثة"}
+              {openConv && (
+                <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontWeight: 400, mt: 0.3 }}>
+                  {openConv.customer?.phone || openConv.waId} — {openConv.ended ? "منتهية" : "مستمرة"}
+                </Typography>
+              )}
+            </Box>
+            {/* 🆕 [فتح المحادثة يدوياً] بيظهر بس لما المحادثة منتهية - يسمح
+                لصاحب المنشأة يفتح صندوق الكتابة عند العميل مؤقتاً عشان
+                يرد على سؤال يدوي، ويسكره لاحقاً بنفس الزر */}
+            {openConv?.ended && (
+              <Tooltip title={openConv.adminChatOverride ? "قفل المحادثة (إيقاف رد العميل)" : "افتح المحادثة (السماح للعميل يرد)"}>
+                <span>
+                  <Button
+                    size="small"
+                    variant={openConv.adminChatOverride ? "outlined" : "contained"}
+                    color={openConv.adminChatOverride ? "error" : "success"}
+                    onClick={handleToggleChatOverride}
+                    disabled={togglingChat}
+                    startIcon={openConv.adminChatOverride ? <LockRoundedIcon fontSize="small" /> : <LockOpenRoundedIcon fontSize="small" />}
+                    sx={{ borderRadius: "10px", fontFamily: '"IBM Plex Sans Arabic"', fontWeight: 700, whiteSpace: "nowrap" }}
+                  >
+                    {togglingChat ? "..." : openConv.adminChatOverride ? "قفل المحادثة" : "افتح المحادثة"}
+                  </Button>
+                </span>
+              </Tooltip>
+            )}
+          </Stack>
         </DialogTitle>
         <DialogContent dividers sx={{ maxHeight: "60vh" }}>
           {openLoading ? (

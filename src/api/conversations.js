@@ -32,11 +32,19 @@ async function sendMessage(waId, { text, image, establishmentId } = {}) {
   return payload?.data;
 }
 
+// بتفتح/تسكر صندوق الكتابة عند العميل يدوياً حتى لو محادثته أصلاً منتهية
+// (زيارته خلصت) - عشان صاحب المنشأة يقدر يبعتله سؤال يدوي والعميل يقدر يرد عليه
+function toggleChatOverride(waId, open, establishmentId) {
+  const qs = establishmentId ? `?establishmentId=${encodeURIComponent(establishmentId)}` : "";
+  return apiClient.post(`/conversations/${encodeURIComponent(waId)}/chat-override${qs}`, { open });
+}
+
 // establishmentId بينبعت كـ query param بس لما يكون المستخدم super_admin
 export const conversationsApi = {
   list: (establishmentId, search) => apiClient.get("/conversations", { establishmentId, search }),
   get: (waId, establishmentId) => apiClient.get(`/conversations/${encodeURIComponent(waId)}`, { establishmentId }),
   sendMessage,
+  toggleChatOverride,
   remove: (waId, establishmentId) =>
     apiClient.delete(`/conversations/${encodeURIComponent(waId)}${establishmentId ? `?establishmentId=${establishmentId}` : ""}`),
 };

@@ -2613,6 +2613,16 @@ export default function WebChat() {
   // صاحب المنشأة اليدوية (sendAdminMessage) لسا توصله عادي كمان. بيرجع
   // ينفتح تلقائياً أول ما يمسح QR من جديد ويبلّش زيارة جديدة.
   const [chatLocked, setChatLocked] = useState(false);
+  // 🆕 [فتح المحادثة يدوياً] صاحب المنشأة فاتح صندوق الكتابة يدوياً حالياً
+  // (زر بصفحة "المحادثات" بالداشبورد) رغم إنه chatLocked=true (الزيارة
+  // خلصت) - عشان يسمح للعميل يرد على سؤال يدوي بعته. شوف "joined" و
+  // "admin_chat_override" تحت
+  const [adminChatOpen, setAdminChatOpen] = useState(false);
+  // 🆕 [فتح المحادثة يدوياً] "القفل الفعلي" لصندوق الكتابة - نفس chatLocked
+  // بس بيتجاوزه لو صاحب المنشأة فتح المحادثة يدوياً (adminChatOpen). منخلي
+  // chatLocked نفسها زي ما هي بباقي الاستخدامات (بانر "خلصت زيارتك"، أيقونة
+  // امسح QR...) - هاد المتغير بس للتحكم بصندوق الكتابة/زر الإرسال.
+  const inputLocked = chatLocked && !adminChatOpen;
   const [errorMessage, setErrorMessage] = useState("");
   const [messages, setMessages] = useState([]);
   // true لما نكون عم نعرض نسخة محفوظة محلياً من المحادثة (شوف
@@ -3224,6 +3234,7 @@ export default function WebChat() {
       setIsOfflineFallback(false);
       if (data.chatLocked && chatIdRef.current) saveOutboxList(chatIdRef.current, []);
       setChatLocked(Boolean(data.chatLocked));
+      setAdminChatOpen(Boolean(data.adminChatOverride));
 
       // 🩹 [إصلاح] مزامنة lastQrScanKey (localStorage) مع lastVisitAt الجاي
       // من السيرفر (CustomerProfile - نفس المرجع يلي whatsapp.service.js
@@ -3455,6 +3466,13 @@ export default function WebChat() {
     });
 
     socket.on("bot_typing", (data) => setBotTyping(Boolean(data?.typing)));
+
+    // 🆕 [فتح المحادثة يدوياً] صاحب المنشأة فتح/سكر صندوق الكتابة يدوياً
+    // من صفحة "المحادثات" وقت ما الشات كان مقفول - منحدّث فوراً بدون
+    // ما نحتاج ريفرش للصفحة (شوف setManualChatOverride بـwebChat.service.js)
+    socket.on("admin_chat_override", (data) => {
+      setAdminChatOpen(Boolean(data?.open));
+    });
 
     // 🆕 [تذكير شات الويب] وصلت علامة "؟!" لرسالة بوت سابقة (العميل ضل
     // واقف بدون رد عليها - شوف markMessageNeedsReminder بـwebChat.service.js)
@@ -3902,7 +3920,7 @@ export default function WebChat() {
 
   function handleSend() {
     const text = draft.trim();
-    if (!text || !chatIdRef.current || chatLocked) return;
+    if (!text || !chatIdRef.current || inputLocked) return;
     const clientMsgId =
       typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
     const at = new Date().toISOString();
@@ -4427,7 +4445,7 @@ export default function WebChat() {
           flexShrink: 0,
         }}
       >
-        {chatLocked ? (
+        {inputLocked ? (
           // [Change 2] الزيارة خلصت - بنعرض زر ماسح QR داخل الشات مباشرة
           // عشان العميل يقدر يبلّش زيارة جديدة بدون ما يطلع من التطبيق
           <div
@@ -4526,8 +4544,8 @@ export default function WebChat() {
                   handleSend();
                 }
               }}
-              placeholder={chatLocked ? "انتهت المحادثة - امسح QR لزيارة جديدة" : connectionState === "connected" ? "اكتب رسالتك..." : "بانتظار الاتصال..."}
-              disabled={connectionState !== "connected" || chatLocked}
+              placeholder={inputLocked ? "انتهت المحادثة - امسح QR لزيارة جديدة" : connectionState === "connected" ? "اكتب رسالتك..." : "بانتظار الاتصال..."}
+              disabled={connectionState !== "connected" || inputLocked}
               rows={1}
               style={{
                 width: "100%",
@@ -4546,7 +4564,7 @@ export default function WebChat() {
 
           <button
             onClick={handleSend}
-            disabled={connectionState !== "connected" || !draft.trim() || chatLocked}
+            disabled={connectionState !== "connected" || !draft.trim() || inputLocked}
             aria-label="إرسال"
             style={{
               width: 44,
