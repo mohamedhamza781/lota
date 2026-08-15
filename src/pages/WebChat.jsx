@@ -3283,7 +3283,7 @@ export default function WebChat() {
         // [Change 5] نضيف imageUrl عشان صور الوجبات تظهر من التاريخ بعد الريفرش
         const historyMessages = data.history
           .filter((m) => !isHandshakeEcho(m))
-          .map((m) => ({ id: m.id, from: m.from, text: m.text, imageUrl: m.imageUrl || null, at: m.at }));
+          .map((m) => ({ id: m.id, from: m.from, text: m.text, imageUrl: m.imageUrl || null, at: m.at, needsReminder: Boolean(m.needsReminder) }));
         // أي رسالة لسا بالـoutbox (اتبعتت بس ما توصل تأكيد إنها انحفظت -
         // مثلاً اتسكرت التاب والنت مقطوع) ما رح تكون جوا history (لأنها
         // أصلاً ما وصلت السيرفر بعد) - منضيفها يدوياً بحالة "pending" عشان
@@ -3451,6 +3451,15 @@ export default function WebChat() {
     });
 
     socket.on("bot_typing", (data) => setBotTyping(Boolean(data?.typing)));
+
+    // 🆕 [تذكير شات الويب] وصلت علامة "؟!" لرسالة بوت سابقة (العميل ضل
+    // واقف بدون رد عليها - شوف markMessageNeedsReminder بـwebChat.service.js)
+    // منحدّث الرسالة المطابقة بمصفوفة الرسائل المحلية عشان تظهر العلامة
+    // فوراً بدون ما يحتاج ريفرش للصفحة
+    socket.on("message_reminder", (data) => {
+      if (!data?.messageId) return;
+      setMessages((prev) => prev.map((m) => (m.id === data.messageId ? { ...m, needsReminder: true } : m)));
+    });
 
     socket.on("connect_error", () => {
       setConnectionState((prev) => (prev === "connected" ? "reconnecting" : "connecting"));
@@ -4313,6 +4322,27 @@ export default function WebChat() {
                   {isMe && (m.pending ? <PendingClockIcon color={THEME.textSecondary} /> : <CheckDoubleIcon color={THEME.headerBg} />)}
                 </div>
               </div>
+
+              {/* 🆕 [تذكير شات الويب] علامة "؟!" تحت فقاعة رسالة البوت -
+                  العميل ضل واقف بدون رد عليها لمدة "مدة تذكير البوت" (شوف
+                  markMessageNeedsReminder بـwebChat.service.js). علامة
+                  دائمة (سجل تاريخي إنه انذكر) - ما بتختفي حتى لو رد لاحقاً */}
+              {!isMe && m.needsReminder && (
+                <div
+                  style={{
+                    fontSize: 11.5,
+                    color: THEME.textSecondary,
+                    marginTop: 3,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 4,
+                    opacity: 0.85,
+                  }}
+                >
+                  <span>؟!</span>
+                  <span>لسا بانتظار ردك</span>
+                </div>
+              )}
             </div>
           );
         })}
