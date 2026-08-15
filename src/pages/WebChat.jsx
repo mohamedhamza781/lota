@@ -4340,7 +4340,6 @@ export default function WebChat() {
                   }}
                 >
                   <span>؟!</span>
-                  <span>لسا بانتظار ردك</span>
                 </div>
               )}
             </div>
