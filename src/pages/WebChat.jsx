@@ -3334,8 +3334,12 @@ export default function WebChat() {
         // "تواصل" جديد بيتفحص تلقائياً (نافذة الـ١٢ ساعة) ويُحسب زيارة
         // جديدة لو عدّت المدة، أو يتجاهل بصمت لو ضمن نفس الزيارة. هاي
         // الرسالة مش من كتابة العميل الفعلية، فما منظهرها بالمحادثة.
+        // 🩹 [إصلاح] visitCheck:true - عشان الباك إند يعرف يميّزها عن رد
+        // فعلي من الزبون ويتجاهلها بالكامل لو الزبون أصلاً بمنتصف خطوة
+        // (مستني يرد على سؤال) بدل ما تنبلع داخل معالج الخطوة الحالية
+        // وتتفسر غلط كجواب (شوف _visitCheck بـwhatsapp.service.js).
         visitTriggerSentRef.current = true;
-        socket.emit("client_message", { text: "•", hideBubble: true });
+        socket.emit("client_message", { text: "•", hideBubble: true, visitCheck: true });
       }
     });
 
