@@ -35,6 +35,7 @@ import QrCode2RoundedIcon from "@mui/icons-material/QrCode2Rounded";
 import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
 import CloudUploadRoundedIcon from "@mui/icons-material/CloudUploadRounded";
 import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
+import StarBorderRoundedIcon from "@mui/icons-material/StarBorderRounded";
 import { tokens } from "../theme/theme";
 import { useAuth } from "../auth/AuthContext";
 import { fetchWebChatQrCode } from "../api/webChat";
@@ -161,6 +162,21 @@ export default function Menu() {
 
   function removeItemImage(indexToRemove) {
     setItemForm((f) => ({ ...f, imageUrls: f.imageUrls.filter((_, i) => i !== indexToRemove) }));
+  }
+
+  // بتخلي الصورة بالفهرس المحدد هي "الغلاف" (أول عنصر بمصفوفة imageUrls) -
+  // الباك إند دايماً بياخد imageUrls[0] ليكون imageUrl (شوف normalizeImages
+  // بـproduct.controller.js)، فهو نفسه يلي بيظهر غلاف الكارد بالمنيو العام
+  // (DishCard.jsx)، فمجرد ما نعيد ترتيب المصفوفة هون كافي - بدون أي تعديل
+  // على الباك إند
+  function setCoverImage(index) {
+    setItemForm((f) => {
+      if (index <= 0 || index >= f.imageUrls.length) return f;
+      const next = [...f.imageUrls];
+      const [chosen] = next.splice(index, 1);
+      next.unshift(chosen);
+      return { ...f, imageUrls: next };
+    });
   }
 
   function handleSaveItem() {
@@ -725,38 +741,94 @@ export default function Menu() {
 
             {/* رفع صور الصنف - لغاية ٣ صور، بتظهر بديالوغ معرض الصور لما
                 الزبون يضغط على كارد الصنف بالمنيو العام (شوف DishCard.jsx
-                وDishGalleryDialog.jsx). أول صورة برضه هي غلاف الكارد نفسه. */}
+                وDishGalleryDialog.jsx). أول صورة بالمصفوفة هي غلاف الكارد
+                نفسه يلي بيظهر بشبكة المنيو - صاحب المنشأة فيه يغيّرها بالضغط
+                على نجمة أي صورة تانية (شوف setCoverImage فوق) */}
             <Stack spacing={1}>
               <Typography sx={{ fontFamily: '"IBM Plex Sans Arabic"', fontSize: "0.8rem", fontWeight: 600, color: tokens.muted }}>
                 صور الصنف ({itemForm.imageUrls.length}/{MAX_ITEM_IMAGES})
+                {itemForm.imageUrls.length > 1 && (
+                  <Box component="span" sx={{ fontWeight: 400, color: tokens.mutedLight }}>
+                    {" "}— دوس ⭐ على أي صورة لتخليها غلاف الكارد
+                  </Box>
+                )}
               </Typography>
               <Stack direction="row" spacing={1}>
-                {itemForm.imageUrls.map((url, i) => (
-                  <Box key={url + i} sx={{ position: "relative", width: 88, height: 88, flexShrink: 0 }}>
-                    <Box
-                      component="img"
-                      src={resolveImageUrl(url)}
-                      alt={`معاينة ${i + 1}`}
-                      sx={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "10px" }}
-                    />
-                    <IconButton
-                      size="small"
-                      onClick={() => removeItemImage(i)}
-                      sx={{
-                        position: "absolute",
-                        top: -6,
-                        insetInlineEnd: -6,
-                        bgcolor: "background.paper",
-                        boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
-                        width: 22,
-                        height: 22,
-                        "&:hover": { bgcolor: "background.paper" },
-                      }}
-                    >
-                      <DeleteOutlineRoundedIcon sx={{ fontSize: 14, color: "error.main" }} />
-                    </IconButton>
-                  </Box>
-                ))}
+                {itemForm.imageUrls.map((url, i) => {
+                  const isCover = i === 0;
+                  return (
+                    <Box key={url + i} sx={{ position: "relative", width: 88, height: 88, flexShrink: 0 }}>
+                      <Box
+                        component="img"
+                        src={resolveImageUrl(url)}
+                        alt={`معاينة ${i + 1}`}
+                        sx={{
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
+                          borderRadius: "10px",
+                          border: "2px solid",
+                          borderColor: isCover ? tokens.ink : "transparent",
+                          display: "block",
+                        }}
+                      />
+                      {isCover ? (
+                        <Chip
+                          label="الغلاف"
+                          size="small"
+                          sx={{
+                            position: "absolute",
+                            bottom: 4,
+                            insetInlineStart: 4,
+                            insetInlineEnd: 4,
+                            height: 18,
+                            fontSize: "0.6rem",
+                            fontWeight: 700,
+                            fontFamily: '"IBM Plex Sans Arabic"',
+                            bgcolor: tokens.ink,
+                            color: tokens.paper,
+                            "& .MuiChip-label": { px: 0.5 },
+                          }}
+                        />
+                      ) : (
+                        <Tooltip title="خلّيها غلاف الكارد">
+                          <IconButton
+                            size="small"
+                            onClick={() => setCoverImage(i)}
+                            sx={{
+                              position: "absolute",
+                              bottom: -6,
+                              insetInlineStart: -6,
+                              bgcolor: "background.paper",
+                              boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
+                              width: 22,
+                              height: 22,
+                              "&:hover": { bgcolor: "background.paper" },
+                            }}
+                          >
+                            <StarBorderRoundedIcon sx={{ fontSize: 15, color: tokens.muted }} />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                      <IconButton
+                        size="small"
+                        onClick={() => removeItemImage(i)}
+                        sx={{
+                          position: "absolute",
+                          top: -6,
+                          insetInlineEnd: -6,
+                          bgcolor: "background.paper",
+                          boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
+                          width: 22,
+                          height: 22,
+                          "&:hover": { bgcolor: "background.paper" },
+                        }}
+                      >
+                        <DeleteOutlineRoundedIcon sx={{ fontSize: 14, color: "error.main" }} />
+                      </IconButton>
+                    </Box>
+                  );
+                })}
 
                 {itemForm.imageUrls.length < MAX_ITEM_IMAGES && (
                   <Button
