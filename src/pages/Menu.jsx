@@ -213,7 +213,7 @@ export default function Menu() {
         <Stack direction="row" spacing={1.5}>
           <Button
             component="a"
-            href={`/m/${establishment.slug}`}
+            href={`/${establishment.slug}`}
             target="_blank"
             rel="noopener"
             variant="outlined"

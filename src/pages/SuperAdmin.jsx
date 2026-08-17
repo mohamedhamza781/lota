@@ -495,7 +495,7 @@ export default function SuperAdmin() {
                           </Button>
                           <Button
                             component="a"
-                            href={`/m/${e.id}`}
+                            href={`/${e.slug}`}
                             target="_blank"
                             rel="noopener"
                             sx={{

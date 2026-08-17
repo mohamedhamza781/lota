@@ -96,10 +96,22 @@ function setMetaTag(name, content) {
   el.content = content;
 }
 
+// المسارات الثابتة الوحيدة يلي مسموحة كـsegment أول بالرابط (مطابقة
+// لنفس القائمة يلي بالراوتس تحت + reservedSlugs.js بالباك اند) - أي
+// segment أول غيرهم معناه إنه صفحة منشأة عامة (kajo.app/:slug)
+const RESERVED_TOP_LEVEL_SEGMENTS = ["login", "403", "users", "whatsapp-bot", "admin", "chat"];
+
+function isTenantScopedPath(pathname) {
+  if (pathname.startsWith("/chat/")) return true;
+  if (pathname === "/") return false;
+  const firstSegment = pathname.split("/")[1];
+  return !RESERVED_TOP_LEVEL_SEGMENTS.includes(firstSegment);
+}
+
 function useDashboardManifest() {
   const location = useLocation();
   useEffect(() => {
-    const isTenantScopedPage = location.pathname.startsWith("/chat/") || location.pathname.startsWith("/m/");
+    const isTenantScopedPage = isTenantScopedPath(location.pathname);
     if (isTenantScopedPage) return; // WebChat.jsx / PublicMenu.jsx (لو إلها منطق مشابه) بيتكفلوا فيها لحالهم
 
     let link = document.querySelector('link[rel="manifest"]');
@@ -158,8 +170,13 @@ export default function App() {
         }
       />
 
-      {/* الصفحة العامة لكل منشأة — بدون شريط جانبي أو مصادقة */}
-      <Route path="/m/:slug" element={<PublicMenu />} />
+      {/* الصفحة العامة لكل منشأة — بدون شريط جانبي أو مصادقة. مسار واحد
+          فقط (kajo.app/:slug) بدون بادئة /m/. React Router v6 بيرتّب
+          المسارات الثابتة (زي /login، /users) فوق المسارات الديناميكية
+          هاي دايماً بغض النظر عن ترتيب التصريح، وslug المحجوزة زي "admin"
+          أو "login" ممنوعة أصلاً وقت إنشاء المنشأة (شوف reservedSlugs.js
+          بالباك اند) - فما في تعارض حقيقي ممكن يصير. */}
+      <Route path="/:slug" element={<PublicMenu />} />
 
       {/* شات الويب - بديل واتساب الكامل، بدون تسجيل دخول، بنفس منطق البوت */}
       <Route path="/chat/:slug" element={<WebChat />} />
