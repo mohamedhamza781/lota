@@ -57,7 +57,18 @@ export default function DishCard({ name, price, description, imageUrl, imageUrls
             src={resolvedImage}
             alt={name}
             loading="lazy"
-            sx={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+            sx={{
+              // position: absolute بيطلّع الصورة برا الـ flow تمامًا، عشان
+              // أبعادها الأصلية (intrinsic size) ما تقدر أبدًا تكبّر أو
+              // تأثر على ارتفاع الصندوق الأب - الصندوق دايمًا بيضل ملتزم
+              // بنسبة 4/3 المحددة فوق، بغض النظر شو مقاس الصورة يلي انرفعت
+              position: "absolute",
+              inset: 0,
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              display: "block",
+            }}
           />
         ) : (
           <RestaurantRoundedIcon sx={{ color: "primary.main", fontSize: { xs: 26, sm: 34 }, opacity: 0.5 }} />
