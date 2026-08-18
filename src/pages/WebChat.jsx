@@ -6,7 +6,7 @@ import { useParams } from "react-router-dom";
 import { io } from "socket.io-client";
 import { API_ORIGIN } from "../api/client";
 import { resolveImageUrl } from "../api/uploads";
-import { uploadWebChatMealPhoto, fetchWebChatAccount, fetchWebChatInfo, uploadWebChatAvatar, fetchVapidPublicKey, subscribeToPush } from "../api/webChat";
+import { uploadWebChatMealPhoto, fetchWebChatAccount, fetchWebChatInfo, uploadWebChatAvatar, fetchVapidPublicKey, subscribeToPush, recoverWebChatAccount } from "../api/webChat";
 import { queuePhotoForBackgroundSync } from "../utils/offlineUploadQueue";
 import PublicMenu from "./PublicMenu";
 
@@ -3569,8 +3569,40 @@ export default function WebChat() {
     }
   }
 
-  function handleWelcomeSubmit({ name, phone }) {
+  async function handleWelcomeSubmit({ name, phone }) {
     setRegistrationError("");
+
+    // 🩹 [إصلاح] قبل ما نعتبرها تسجيل جديد بالكامل، منتحقق أولاً إنه ما
+    // في أصلاً حساب مسجّل بنفس رقم الهاتف بهاي المنشأة (شوف recoverAccount
+    // بالباك إند). هاي الحالة بتصير كتير لما العميل يفتح شات الويب من
+    // دومين/جهاز/متصفح جديد (مثلاً بعد تغيير الدومين أو تثبيت الاختصار
+    // من جديد) - عندها localStorage فاضي (ما في chatId محفوظ) رغم إنه
+    // العميل أصلاً مسجّل بالنظام من زيارة سابقة. من دون هاد التحقق، كنا
+    // ننشئله waId/حساب جديد بالكامل فيوصل لشاشة "جاري إنشاء حسابك..."
+    // من جديد وتختفي عليه كل محادثته وسجله القديم (مع إنه لسا مسجّل أصلاً)
+    try {
+      const recovered = await recoverWebChatAccount({ slug, phone });
+      if (recovered?.found && recovered?.chatId) {
+        try {
+          localStorage.setItem(storageKey, recovered.chatId);
+          localStorage.setItem(regInfoKey, JSON.stringify({ name: recovered.name || name, phone }));
+        } catch {
+          // تجاهل - لو localStorage مش متاح، بنكمل عادي (بس بدون استمرارية)
+        }
+        chatIdRef.current = recovered.chatId;
+        setChatId(recovered.chatId);
+        setWelcomeName(recovered.name || name);
+        // "verifying" بتفتح اتصال socket جديد بالـchatId المسترجَع وبتتحقق
+        // من السيرفر، وبترجّع له نفس محادثته ونقاطه القديمة - بدون أي
+        // تسجيل جديد ولا فقدان لسجله
+        setScreen("verifying");
+        return;
+      }
+    } catch {
+      // فشل التحقق (غالباً انقطاع نت) - منكمل بمسار التسجيل العادي بدل
+      // ما نعلّق العميل بلا أي رد فعل
+    }
+
     pendingRegistrationRef.current = { name, phone };
     // بنحفظ الاسم/الرقم محلياً عشان نقدر نفلترهم لاحقاً من history
     // الراجعة من السيرفر (شوف تعريف regInfoKey فوق للتفاصيل)

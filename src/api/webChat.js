@@ -77,6 +77,28 @@ export async function uploadWebChatAvatar({ slug, file, chatId }) {
   return payload?.data;
 }
 
+// استرجاع حساب عميل موجود مسبقاً بالنظام اعتماداً على رقم هاتفه - بنستخدمها
+// لما العميل يفتح شات الويب من دومين/جهاز/متصفح جديد (أو مسح بيانات
+// المتصفح) وبالتالي ما عندنا chatId محفوظ محلياً، بس هو أصلاً مسجّل
+// بالنظام من قبل (بنفس رقم الهاتف) - عشان نربطه برجعة بحسابه القديم
+// (نقاطه، كوبوناته، وسجل محادثته) بدل ما ننشئله حساب جديد من الصفر
+export async function recoverWebChatAccount({ slug, phone }) {
+  const res = await fetch(`${API_ORIGIN}/api/web-chat/${slug}/recover?phone=${encodeURIComponent(phone)}`);
+
+  let payload = null;
+  try {
+    payload = await res.json();
+  } catch {
+    // تجاهل
+  }
+
+  if (!res.ok) {
+    throw new Error(payload?.message || "تعذّر التحقق من الحساب");
+  }
+
+  return payload?.data;
+}
+
 // إشعارات Push - المفتاح العام + الاشتراك
 export async function fetchVapidPublicKey() {
   const res = await fetch(`${API_ORIGIN}/api/web-chat/push/vapid-public-key`);
