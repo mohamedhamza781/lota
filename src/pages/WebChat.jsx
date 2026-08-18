@@ -3689,6 +3689,16 @@ export default function WebChat() {
     const displayName = establishment?.establishmentName || earlyInfo?.name;
     if (displayName) setMeta("apple-mobile-web-app-title", displayName);
 
+    // 🩹 [إصلاح] <title> بـindex.html ثابت "كاجو" وما كان بينتحدّث أبداً من
+    // جوا شات الويب - المشكلة: لو كروم (أندرويد) ما قدر يتحقق من صلاحية
+    // manifest.json الديناميكي تبع المنشأة بالوقت المناسب (تحميل متأخر
+    // شوي، مشكلة شبكة مؤقتة...)، بيرجع تلقائياً لخطة بديلة: يعمل اختصار
+    // عادي (بوكماركة) بالاسم/الأيقونة المتوفرين بالصفحة نفسها بدل الـ
+    // manifest - وهون بالظبط كان بيلتقط <title> الثابت "كاجو" بدل اسم
+    // المنشأة الحقيقي. هلق منحدّثه هون بنفس لحظة ما بيانات المنشأة توصل،
+    // فحتى لو صار fallback، بيلتقط الاسم الصحيح
+    if (displayName) document.title = displayName;
+
     const logo = resolveImageUrl(establishment?.establishmentLogo || earlyInfo?.logoUrl);
     const iconHref = logo || `${API_ORIGIN}/api/web-chat/${slug}/fallback-icon.svg`;
     let touchIcon = document.querySelector('link[rel="apple-touch-icon"]');
