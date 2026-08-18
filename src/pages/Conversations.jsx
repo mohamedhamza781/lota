@@ -34,6 +34,7 @@ import ImageRoundedIcon from "@mui/icons-material/ImageRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import LockOpenRoundedIcon from "@mui/icons-material/LockOpenRounded";
 import LockRoundedIcon from "@mui/icons-material/LockRounded";
+import QrCodeScannerRoundedIcon from "@mui/icons-material/QrCodeScannerRounded";
 import { SectionHeader } from "../components/SectionHeader";
 import { tokens } from "../theme/theme";
 import { conversationsApi } from "../api/conversations";
@@ -126,6 +127,8 @@ export default function Conversations() {
 
   // 🆕 [فتح المحادثة يدوياً] حالة تحميل زر فتح/قفل صندوق الكتابة عند العميل
   const [togglingChat, setTogglingChat] = useState(false);
+  const [triggeringVisit, setTriggeringVisit] = useState(false);
+  const [visitError, setVisitError] = useState("");
   const [replyText, setReplyText] = useState("");
   const [replyImage, setReplyImage] = useState(null); // File
   const [replyImagePreview, setReplyImagePreview] = useState(null); // blob url
@@ -164,6 +167,7 @@ export default function Conversations() {
     setReplyText("");
     clearReplyImage();
     setSendError("");
+    setVisitError("");
     try {
       const data = await conversationsApi.get(waId, establishmentId);
       setOpenConv(data);
@@ -190,6 +194,22 @@ export default function Conversations() {
       setSendError(err.message || "تعذّر تغيير حالة المحادثة");
     } finally {
       setTogglingChat(false);
+    }
+  }
+
+  // 🆕 [مسح QR يدوي] بترجّع "زر امسح QR الآن" فوراً عند العميل (بدون ما
+  // تحسبله زيارة أو نقاط فوراً) - العميل بعدها لازم يمسح QR فعلياً جوا
+  // الشات (زي أي زيارة عادية)، وحينها بس بتنحسب النقاط والزيارة.
+  async function handleManualVisit() {
+    if (!openConv?.waId) return;
+    setTriggeringVisit(true);
+    setVisitError("");
+    try {
+      await conversationsApi.manualVisit(openConv.waId, establishmentId);
+    } catch (err) {
+      setVisitError(err.message || "تعذّر تفعيل مسح QR لهاد العميل");
+    } finally {
+      setTriggeringVisit(false);
     }
   }
 
@@ -528,6 +548,27 @@ export default function Conversations() {
                 </span>
               </Tooltip>
             )}
+            {/* 🆕 [مسح QR يدوي] بديل لعميل ما قدر يمسح QR جوا الشات بنفسه
+                (مثلاً فقد chatId المحلي بعد تغيير دومين/جهاز) - بترجّع
+                له "زر امسح QR الآن" بس، بدون ما تحسبله زيارة أو نقاط
+                فوراً. النقاط بتنحسب طبيعي لما هو فعلياً يمسح بعدها */}
+            {openConv?.ended && (
+              <Tooltip title='يظهر عند العميل زر "امسح QR الآن" - بدون ما نحسبله زيارة أو نقاط الآن، النقاط بتنحسب طبيعي لما هو فعلياً يمسح QR'>
+                <span>
+                  <Button
+                    size="small"
+                    variant="contained"
+                    color="primary"
+                    onClick={handleManualVisit}
+                    disabled={triggeringVisit}
+                    startIcon={<QrCodeScannerRoundedIcon fontSize="small" />}
+                    sx={{ borderRadius: "10px", fontFamily: '"IBM Plex Sans Arabic"', fontWeight: 700, whiteSpace: "nowrap" }}
+                  >
+                    {triggeringVisit ? "..." : "إظهار امسح QR الآن"}
+                  </Button>
+                </span>
+              </Tooltip>
+            )}
           </Stack>
         </DialogTitle>
         <DialogContent dividers sx={{ maxHeight: "60vh" }}>
@@ -571,6 +612,11 @@ export default function Conversations() {
             {sendError && (
               <Typography variant="caption" sx={{ color: "error.main", display: "block", mb: 0.8, fontFamily: '"IBM Plex Sans Arabic"' }}>
                 {sendError}
+              </Typography>
+            )}
+            {visitError && (
+              <Typography variant="caption" sx={{ color: "error.main", display: "block", mb: 0.8, fontFamily: '"IBM Plex Sans Arabic"' }}>
+                {visitError}
               </Typography>
             )}
             {replyImagePreview && (

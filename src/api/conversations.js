@@ -39,12 +39,22 @@ function toggleChatOverride(waId, open, establishmentId) {
   return apiClient.post(`/conversations/${encodeURIComponent(waId)}/chat-override${qs}`, { open });
 }
 
+// 🆕 [مسح QR يدوي] بترجّع "زر امسح QR الآن" فوراً عند عميل معيّن (بدون ما
+// تحسبله زيارة أو نقاط فوراً) - النقاط بتنحسب طبيعي بس لما هو فعلياً
+// يمسح QR من جوا الشات بعدها. مفيدة لعميل ما قدر يمسح بنفسه (مثلاً فقد
+// chatId المحلي بعد تغيير دومين/جهاز).
+function manualVisit(waId, establishmentId) {
+  const qs = establishmentId ? `?establishmentId=${encodeURIComponent(establishmentId)}` : "";
+  return apiClient.post(`/conversations/${encodeURIComponent(waId)}/manual-visit${qs}`, {});
+}
+
 // establishmentId بينبعت كـ query param بس لما يكون المستخدم super_admin
 export const conversationsApi = {
   list: (establishmentId, search) => apiClient.get("/conversations", { establishmentId, search }),
   get: (waId, establishmentId) => apiClient.get(`/conversations/${encodeURIComponent(waId)}`, { establishmentId }),
   sendMessage,
   toggleChatOverride,
+  manualVisit,
   remove: (waId, establishmentId) =>
     apiClient.delete(`/conversations/${encodeURIComponent(waId)}${establishmentId ? `?establishmentId=${establishmentId}` : ""}`),
 };
