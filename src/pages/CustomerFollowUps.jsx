@@ -30,7 +30,7 @@ import { mealPhotosApi } from "../api/mealPhotos";
 import { getCached, setCached } from "../utils/dataCache";
 import { feedbackApi } from "../api/feedback";
 import { establishmentsApi } from "../api/establishments";
-import { API_ORIGIN } from "../api/client";
+import { resolveImageUrl } from "../api/uploads";
 
 function fmtDateTime(d) {
   if (!d) return "—";
@@ -385,7 +385,7 @@ export default function CustomerFollowUps() {
                         <Tooltip title="معاينة صورة الوجبة">
                           <IconButton
                             size="small"
-                            onClick={() => setPreviewImage(`${API_ORIGIN}${p.imageUrl}`)}
+                            onClick={() => setPreviewImage(resolveImageUrl(p.imageUrl))}
                             sx={{ color: tokens.ink, transition: "all 0.2s ease", "&:hover": { backgroundColor: "rgba(0,0,0,0.05)" } }}
                           >
                             <ImageRoundedIcon fontSize="small" />

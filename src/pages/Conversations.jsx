@@ -38,7 +38,7 @@ import QrCodeScannerRoundedIcon from "@mui/icons-material/QrCodeScannerRounded";
 import { SectionHeader } from "../components/SectionHeader";
 import { tokens } from "../theme/theme";
 import { conversationsApi } from "../api/conversations";
-import { API_ORIGIN } from "../api/client";
+import { resolveImageUrl } from "../api/uploads";
 
 function fmtDateTime(d) {
   if (!d) return "—";
@@ -590,7 +590,7 @@ export default function Conversations() {
                     }}
                   >
                     {m.imageUrl ? (
-                      <Box component="img" src={`${API_ORIGIN}${m.imageUrl}`} alt="صورة" sx={{ maxWidth: "100%", borderRadius: "10px" }} />
+                      <Box component="img" src={resolveImageUrl(m.imageUrl)} alt="صورة" sx={{ maxWidth: "100%", borderRadius: "10px" }} />
                     ) : (
                       <Typography variant="body2" sx={{ fontFamily: '"IBM Plex Sans Arabic"', whiteSpace: "pre-wrap" }}>
                         {m.text}
