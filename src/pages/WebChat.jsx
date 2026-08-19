@@ -3188,7 +3188,19 @@ export default function WebChat() {
     const socket = io(API_ORIGIN, { path: "/socket.io", transports: ["websocket", "polling"] });
     socketRef.current = socket;
 
+    // 🩹 [إصلاح] عداد محاولات الاتصال الفاشلة المتتالية (شوف connect_error
+    // تحت) - قبل هيك أول اتصال فاشل كان يخلي الحالة "connecting" للأبد
+    // (منطق "prev === connected ? reconnecting : connecting")، فلو النت
+    // فعلياً مقطوع (بس navigator.onLine لسا true - واي فاي متصل بس بدون
+    // نت فعلي عند مزوّد الخدمة) كانت hasRealOfflineEvidence تحت (يلي
+    // بتعرض النسخة المحفوظة محلياً) ما بتتفعل أبداً لأنها بتعتمد بس على
+    // connectionState === "error"، فيضل العميل عالق بشاشة "عم نتأكد من
+    // حسابك..." للأبد. هلق بعد كم محاولة فاشلة متتالية (بدون ما يتصل ولو
+    // مرة وحدة) منعتبرها "error" فعلياً بغض النظر عن navigator.onLine.
+    let failedAttempts = 0;
+
     socket.on("connect", () => {
+      failedAttempts = 0;
       socket.emit("join", {
         slug,
         chatId: savedChatId,
@@ -3484,7 +3496,14 @@ export default function WebChat() {
     });
 
     socket.on("connect_error", () => {
-      setConnectionState((prev) => (prev === "connected" ? "reconnecting" : "connecting"));
+      failedAttempts += 1;
+      setConnectionState((prev) => {
+        if (prev === "connected") return "reconnecting";
+        // ثاني محاولة فاشلة متتالية بدون أي اتصال ناجح قبلها = دليل كافي
+        // إنه في مشكلة اتصال حقيقية (مش مجرد تأخر عادي لأول محاولة) -
+        // منعتبرها "error" عشان فولباك النسخة المحفوظة محلياً يشتغل
+        return failedAttempts >= 2 ? "error" : "connecting";
+      });
     });
 
     socket.on("disconnect", () => setConnectionState("reconnecting"));
